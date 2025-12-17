@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile
-
+from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(choices=Profile.ROLE_CHOICES)
@@ -26,3 +26,27 @@ class ProfileSerializer(serializers.ModelSerializer):
             'is_profile_complete',
             'is_admin_approved',
         ]
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password=serializers.CharField(write_only=True)
+    new_password=serializers.CharField(write_only=True)
+
+    def validate_new_password(self,value):
+        validate_password(value)
+        return value
+
+class ResetPasswordRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ResetPasswordConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)

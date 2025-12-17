@@ -18,10 +18,27 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path,include
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/',include("authentication.urls"))
+    path('api/auth/',include("authentication.urls")),
+    path('api/properties/', include('properties.urls')),
+
+    # OpenAPI schema
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+
+    # Swagger UI
+    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
+    # Redoc UI
+    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+
 ]
 if settings.DEBUG:
     urlpatterns += static(
