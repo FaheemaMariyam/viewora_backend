@@ -5,10 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from .serializers import RegisterSerializer, ProfileSerializer,ChangePasswordSerializer,ResetPasswordConfirmSerializer,ResetPasswordRequestSerializer,LoginSerializer
-from .models import Profile,PasswordResetOTP
+from .serializers import RegisterSerializer, ProfileSerializer,ChangePasswordSerializer,ResetPasswordConfirmSerializer,ResetPasswordRequestSerializer,LoginSerializer,AdminOTPVerifySerializer
+from .models import Profile,PasswordResetOTP,AdminLoginOTP
 import random
 from django.core.mail import send_mail
+from rest_framework.exceptions import AuthenticationFailed,ValidationError
 class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -31,43 +32,42 @@ class LoginView(APIView):
         )
 
         if not user:
-            return Response(
-                {"error": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED
+            raise AuthenticationFailed("Invalid credentials")
+            
+        if user.is_superuser:
+        # delete old OTPs
+            AdminLoginOTP.objects.filter(user=user).delete()
+
+            otp = str(random.randint(100000, 999999))
+            AdminLoginOTP.objects.create(user=user, otp=otp)
+
+            send_mail(
+                subject="Admin Login OTP",
+                message=f"Your admin login OTP is {otp}",
+                from_email=None,
+                recipient_list=[user.email],
             )
 
-        # ✅ SUPERUSER → ADMIN
-        if user.is_superuser:
-            refresh = RefreshToken.for_user(user)
-            response = Response({"role": "admin"})
-            response.set_cookie(
-                key="access",
-                value=str(refresh.access_token),
-                httponly=True,
-                samesite="Lax"
+            return Response(
+                {
+                    "message": "OTP sent to admin email",
+                    "mfa_required": True
+                },
+                status=status.HTTP_200_OK
             )
-            response.set_cookie(
-                key="refresh",
-                value=str(refresh),
-                httponly=True,
-                samesite="Lax"
-            )
-            return response
 
         profile = user.profile
 
         # 🔒 SELLER & BROKER GATES
         if profile.role in ["seller", "broker"]:
             if not profile.is_profile_complete:
-                return Response(
-                    {"error": "Profile incomplete"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                raise ValidationError("Profile incomplete")
+
+                
             if not profile.is_admin_approved:
-                return Response(
-                    {"error": "Admin approval pending"},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                raise ValidationError("Admin approval pending")
+
+                
 
         refresh = RefreshToken.for_user(user)
         response = Response({"role": profile.role})
@@ -123,12 +123,9 @@ class ChangePasswordView(APIView):
 
         #  Verify old password
         if not user.check_password(old_password):
-            return Response(
-                {"error": "Old password is incorrect"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError("Old password is incorrect")
 
-        # Set new password
+            
         user.set_password(new_password)
         user.save()
 
@@ -153,11 +150,8 @@ class ResetPasswordRequestView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response(
-                {"error": "User with this email does not exist"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
+            raise ValidationError("User with this email does not exist")
+            
         # Delete old OTPs
         PasswordResetOTP.objects.filter(user=user).delete()
 
@@ -180,6 +174,7 @@ class ResetPasswordRequestView(APIView):
         )
 
 class ResetPasswordConfirmView(APIView):
+    serializer_class = ResetPasswordConfirmSerializer
     def post(self, request):
         serializer = ResetPasswordConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -192,18 +187,17 @@ class ResetPasswordConfirmView(APIView):
             user = User.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user, otp=otp)
         except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
-            return Response(
-                {"error": "Invalid OTP or email"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            
+            raise ValidationError("Invalid OTP or email")
+
+            
 
         if otp_obj.is_expired():
             otp_obj.delete()
-            return Response(
-                {"error": "OTP expired"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
+            raise ValidationError("OTP expired")
+
+           
         # Reset password
         user.set_password(new_password)
         user.save()
@@ -215,3 +209,34 @@ class ResetPasswordConfirmView(APIView):
             {"message": "Password reset successful"},
             status=status.HTTP_200_OK
         )
+
+class AdminOTPVerifyView(APIView):
+    serializer_class = AdminOTPVerifySerializer
+    permission_classes = []
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data["username"]
+        otp = serializer.validated_data["otp"]
+
+        
+        try:
+            user = User.objects.get(username=username, is_superuser=True)
+            otp_obj = AdminLoginOTP.objects.get(user=user, otp=otp)
+        except (User.DoesNotExist, AdminLoginOTP.DoesNotExist):
+            raise ValidationError("Invalid OTP")
+
+        if otp_obj.is_expired():
+            otp_obj.delete()
+            raise ValidationError("OTP expired")
+           
+        # OTP valid → issue JWT
+        refresh = RefreshToken.for_user(user)
+        otp_obj.delete()
+
+        response = Response({"role": "admin"})
+        response.set_cookie("access", str(refresh.access_token), httponly=True)
+        response.set_cookie("refresh", str(refresh), httponly=True)
+        return response

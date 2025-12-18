@@ -50,3 +50,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+class AdminOTPVerifySerializer(serializers.Serializer):
+    username = serializers.CharField()
+    otp = serializers.CharField(max_length=6)
