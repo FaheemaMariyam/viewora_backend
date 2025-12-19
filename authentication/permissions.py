@@ -16,3 +16,10 @@ class IsApprovedSeller(BasePermission):
     def has_permission(self, request, view):
         p = request.user.profile
         return p.role == 'seller' and p.is_admin_approved
+class IsClientUser(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and
+            hasattr(request.user, 'profile') and
+            request.user.profile.role == 'client'
+        )

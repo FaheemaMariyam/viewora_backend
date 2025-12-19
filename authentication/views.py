@@ -93,6 +93,7 @@ class ProfileView(APIView):
 
         if user.is_superuser:
             return Response({
+                
                 "role": "admin",
                 "username": user.username,
                 "email": user.email

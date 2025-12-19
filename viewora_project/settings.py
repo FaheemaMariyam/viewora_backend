@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'authentication',
     'properties',
     'drf_spectacular',
+    'django_filters',
+    'interests'
 ]
 
 MIDDLEWARE = [
