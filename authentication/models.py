@@ -12,6 +12,12 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    phone_number = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True
+    )
+    is_phone_verified = models.BooleanField(default=False)
 
     profile_image = models.ImageField(
         upload_to="profile_images/",

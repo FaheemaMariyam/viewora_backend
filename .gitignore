@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+viewora_env/
+
+# Django
+db.sqlite3
+media/
+
+# Firebase Admin SDK (CRITICAL)
+firebase_service_account.json
+viewora-project-firebase-adminsdk-*.json
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
