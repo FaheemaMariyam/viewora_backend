@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'authentication',
     'properties',
-    'drf_spectacular',
+    'drf_yasg',
     'django_filters',
     'interests',
     'corsheaders',
@@ -107,23 +107,31 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         "authentication.authentication.CookieJWTAuthentication",
     ),
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
 }
 
 
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Viewora API',
-    'DESCRIPTION': 'AI-powered Virtual Real Estate Platform APIs',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-}
+# SPECTACULAR_SETTINGS = {
+#     'TITLE': 'Viewora API',
+#     'DESCRIPTION': 'AI-powered Virtual Real Estate Platform APIs',
+#     'VERSION': '1.0.0',
+#     'SERVE_INCLUDE_SCHEMA': False,
+# }
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'viewora@gmail.com'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = True
+
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+
 
 
 # Password validation

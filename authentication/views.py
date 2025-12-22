@@ -10,16 +10,74 @@ from .models import Profile,PasswordResetOTP,AdminLoginOTP
 import random
 from django.core.mail import send_mail
 from rest_framework.exceptions import AuthenticationFailed,ValidationError
-class RegisterView(APIView):
+from firebase_admin import auth as firebase_auth
+from authentication import firebase_admin  # <-- just importing triggers init
+
+# class RegisterView(APIView):
     
+#     def post(self, request):
+#         serializer = RegisterSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(
+#             {"message": "Registration successful"},
+#             status=status.HTTP_201_CREATED
+#         )
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
+        #  1. Get Firebase ID token from frontend
+        firebase_token = request.data.get("firebase_token")
+
+        if not firebase_token:
+            raise ValidationError("Phone verification required")
+
+        #  2. Verify Firebase token
+        try:
+            decoded_token = firebase_auth.verify_id_token(firebase_token)
+            phone_number = decoded_token.get("phone_number")
+        except Exception:
+            raise ValidationError("Invalid or expired phone verification")
+
+        if not phone_number:
+            raise ValidationError("Phone number not found in Firebase token")
+
+        # 3. Prevent duplicate phone registrations
+        if Profile.objects.filter(phone_number=phone_number).exists():
+            raise ValidationError("Phone number already registered")
+
+        #  4. Prepare data for serializer
+        data = request.data.copy()
+        data["phone_number"] = phone_number
+
+        serializer = RegisterSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(
+
+        # 5. Generate JWT tokens
+        user = User.objects.get(username=data["username"])
+        refresh = RefreshToken.for_user(user)
+
+        #  6. Set cookies (secure auth)
+        response = Response(
             {"message": "Registration successful"},
             status=status.HTTP_201_CREATED
         )
+        response.set_cookie(
+            key="access",
+            value=str(refresh.access_token),
+            httponly=True,
+            samesite="Lax",
+        )
+        response.set_cookie(
+            key="refresh",
+            value=str(refresh),
+            httponly=True,
+            samesite="Lax",
+        )
+
+        return response
 
 class LoginView(APIView):
     serializer_class = LoginSerializer
@@ -59,7 +117,7 @@ class LoginView(APIView):
 
         profile = user.profile
 
-        # 🔒 SELLER & BROKER GATES
+        # SELLER & BROKER GATES
         if profile.role in ["seller", "broker"]:
             if not profile.is_profile_complete:
                 raise ValidationError("Profile incomplete")

@@ -18,10 +18,19 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path,include
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularSwaggerView,
-    SpectacularRedocView,
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="Viewora API",
+      default_version='v1',
+      description="AI-powered Virtual Real Estate Platform APIs",
+      contact=openapi.Contact(email="viewora@gmail.com"),
+   ),
+   public=True,
+   permission_classes=[permissions.AllowAny],
 )
 
 urlpatterns = [
@@ -30,14 +39,9 @@ urlpatterns = [
     path('api/properties/', include('properties.urls')),
     path('api/interests/',include('interests.urls')),
 
-    # OpenAPI schema
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-
-    # Swagger UI
-    path('swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-
-    # Redoc UI
-    path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # Swagger (drf-yasg)
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),
 
 
 ]
