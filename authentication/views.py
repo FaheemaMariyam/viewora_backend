@@ -6,78 +6,37 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from .serializers import RegisterSerializer, ProfileSerializer,ChangePasswordSerializer,ResetPasswordConfirmSerializer,ResetPasswordRequestSerializer,LoginSerializer,AdminOTPVerifySerializer
-from .models import Profile,PasswordResetOTP,AdminLoginOTP
-import random
+from .models import Profile,PasswordResetOTP,AdminLoginOTP,PhoneOTP
 from django.core.mail import send_mail
 from rest_framework.exceptions import AuthenticationFailed,ValidationError
-from firebase_admin import auth as firebase_auth
-from authentication import firebase_admin  # <-- just importing triggers init
+from twilio.rest import Client
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import random
 
-# class RegisterView(APIView):
-    
-#     def post(self, request):
-#         serializer = RegisterSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return Response(
-#             {"message": "Registration successful"},
-#             status=status.HTTP_201_CREATED
-#         )
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        #  1. Get Firebase ID token from frontend
-        firebase_token = request.data.get("firebase_token")
+        serializer = RegisterSerializer(data=request.data)
 
-        if not firebase_token:
-            raise ValidationError("Phone verification required")
+        if not serializer.is_valid():
+            print("REGISTER ERRORS:", serializer.errors)
+            return Response(serializer.errors, status=400)
 
-        #  2. Verify Firebase token
-        try:
-            decoded_token = firebase_auth.verify_id_token(firebase_token)
-            phone_number = decoded_token.get("phone_number")
-        except Exception:
-            raise ValidationError("Invalid or expired phone verification")
+        user = serializer.save()
+        return Response(
+    {
+        "message": "Signup success",
+        "role": user.profile.role,
+        "is_admin_approved": user.profile.is_admin_approved,
+        "is_profile_complete": user.profile.is_profile_complete,
+    },
+    status=201
+)
 
-        if not phone_number:
-            raise ValidationError("Phone number not found in Firebase token")
 
-        # 3. Prevent duplicate phone registrations
-        if Profile.objects.filter(phone_number=phone_number).exists():
-            raise ValidationError("Phone number already registered")
-
-        #  4. Prepare data for serializer
-        data = request.data.copy()
-        data["phone_number"] = phone_number
-
-        serializer = RegisterSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        # 5. Generate JWT tokens
-        user = User.objects.get(username=data["username"])
-        refresh = RefreshToken.for_user(user)
-
-        #  6. Set cookies (secure auth)
-        response = Response(
-            {"message": "Registration successful"},
-            status=status.HTTP_201_CREATED
-        )
-        response.set_cookie(
-            key="access",
-            value=str(refresh.access_token),
-            httponly=True,
-            samesite="Lax",
-        )
-        response.set_cookie(
-            key="refresh",
-            value=str(refresh),
-            httponly=True,
-            samesite="Lax",
-        )
-
-        return response
 
 class LoginView(APIView):
     serializer_class = LoginSerializer
@@ -152,14 +111,23 @@ class ProfileView(APIView):
 
         if user.is_superuser:
             return Response({
-                
                 "role": "admin",
                 "username": user.username,
                 "email": user.email
             })
 
-        serializer = ProfileSerializer(user.profile)
+        profile = user.profile   # ✅ FIX
+
+        if profile.role in ["seller", "broker"]:
+            if not profile.is_admin_approved:
+                return Response(
+                    {"error": "Admin approval pending"},
+                    status=403
+                )
+
+        serializer = ProfileSerializer(profile)
         return Response(serializer.data)
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -300,3 +268,74 @@ class AdminOTPVerifyView(APIView):
         response.set_cookie("access", str(refresh.access_token), httponly=True)
         response.set_cookie("refresh", str(refresh), httponly=True)
         return response
+    
+client = Client(
+    settings.TWILIO_ACCOUNT_SID,
+    settings.TWILIO_AUTH_TOKEN
+)
+@method_decorator(csrf_exempt, name="dispatch")
+class SendPhoneOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get("phone_number")
+
+        if not phone_number:
+            return Response(
+                {"error": "phone_number required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            client.verify \
+                .services(settings.TWILIO_VERIFY_SID) \
+                .verifications \
+                .create(to=phone_number, channel="sms")
+
+            return Response({"message": "OTP sent"}, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class VerifyPhoneOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get("phone_number")
+        otp = request.data.get("otp")
+
+        if not phone_number or not otp:
+            return Response(
+                {"error": "phone_number and otp required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # client = Client(
+        #     settings.TWILIO_ACCOUNT_SID,
+        #     settings.TWILIO_AUTH_TOKEN
+        # )
+
+        try:
+            verification_check = client.verify \
+                .services(settings.TWILIO_VERIFY_SID) \
+                .verification_checks \
+                .create(to=phone_number, code=otp)
+
+            if verification_check.status == "approved":
+                return Response(
+                    {"verified": True},
+                    status=status.HTTP_200_OK
+                )
+
+            return Response(
+                {"error": "Invalid OTP"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

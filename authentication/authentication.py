@@ -5,7 +5,7 @@ class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         raw_token = request.COOKIES.get("access")
 
-        # 🔹 No cookie → let DRF continue
+        # No cookie → let DRF continue
         if not raw_token:
             return None
 
@@ -14,5 +14,5 @@ class CookieJWTAuthentication(JWTAuthentication):
             user = self.get_user(validated_token)
             return (user, validated_token)
         except AuthenticationFailed:
-            # 🔥 IMPORTANT: swallow auth errors for public endpoints
+            # swallow auth errors for public endpoints
             return None
