@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import Property
+from interests.models import PropertyInterest
 
 class PropertyCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
-        exclude = (
+        exclude = (      #seller cannot see this
             'id',
             'seller',
             'status',
@@ -13,8 +14,30 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         )
+# class PropertyListSerializer(serializers.ModelSerializer):
+#     seller = serializers.StringRelatedField()
+
+#     class Meta:
+#         model = Property
+#         fields = [
+#             'id',
+#             'seller',
+#             'title',
+#             'price',
+#             'city',
+#             'locality',
+#             'property_type',
+#             'area_size',
+#             'area_unit',
+#             'bedrooms',
+#             'bathrooms',
+#             'view_count',
+#             'interest_count',
+#             'created_at',
+#         ]
 class PropertyListSerializer(serializers.ModelSerializer):
     seller = serializers.StringRelatedField()
+    is_interested = serializers.SerializerMethodField()  # ✅ ADD
 
     class Meta:
         model = Property
@@ -33,5 +56,55 @@ class PropertyListSerializer(serializers.ModelSerializer):
             'view_count',
             'interest_count',
             'created_at',
+            'is_interested',   # ✅ ADD
         ]
 
+    def get_is_interested(self, obj):
+        request = self.context.get("request")
+
+        if not request or not request.user.is_authenticated:
+            return False
+
+        return PropertyInterest.objects.filter(
+            property=obj,
+            client=request.user
+        ).exists()
+# class PropertyDetailSerializer(serializers.ModelSerializer):
+#     seller = serializers.StringRelatedField()
+
+#     class Meta:
+#         model = Property
+#         fields = "__all__"
+# class PropertyDetailSerializer(serializers.ModelSerializer):
+#     seller = serializers.StringRelatedField()
+#     is_interested = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Property
+#         fields = "__all__"
+
+#     def get_is_interested(self, obj):
+#         request = self.context.get("request")
+#         if not request or not request.user.is_authenticated:
+#             return False
+
+#         return obj.interests.filter(
+#             client=request.user
+#         ).exists()
+class PropertyDetailSerializer(serializers.ModelSerializer):
+    seller = serializers.StringRelatedField()
+    is_interested = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Property
+        fields = "__all__"
+
+    def get_is_interested(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+
+        return PropertyInterest.objects.filter(
+            property=obj,
+            client=request.user
+        ).exists()

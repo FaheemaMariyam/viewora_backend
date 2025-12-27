@@ -1,11 +1,11 @@
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.authentication import JWTAuthentication #Token validation,Token decoding,User fetching
+from rest_framework.exceptions import AuthenticationFailed #exception raise
 
 class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         raw_token = request.COOKIES.get("access")
 
-        # No cookie → let DRF continue
+        # No cookie , let DRF continue
         if not raw_token:
             return None
 
@@ -16,3 +16,4 @@ class CookieJWTAuthentication(JWTAuthentication):
         except AuthenticationFailed:
             # swallow auth errors for public endpoints
             return None
+#if valid,attatch the user,else unauthenticated

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 
 from properties.models import Property
 from .models import PropertyInterest
-from .serializers import PropertyInterestSerializer
+from .serializers import PropertyInterestListSerializer,PropertyInterestCreateSerializer
 from authentication.permissions import IsClientUser,IsApprovedBroker
 from .services import assign_broker_to_interest
 from django.db import transaction
@@ -122,5 +122,6 @@ class BrokerAssignedInterestsView(APIView):
             broker=request.user,
             status__in=['assigned', 'in_progress']
         )
-        serializer = PropertyInterestSerializer(qs, many=True)
+        serializer = PropertyInterestListSerializer(qs, many=True)
+
         return Response(serializer.data)

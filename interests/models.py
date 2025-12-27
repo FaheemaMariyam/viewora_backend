@@ -11,12 +11,14 @@ class PropertyInterest(models.Model):
         ('closed', 'Closed'),
         ('cancelled', 'Cancelled'),
     )
+    #One property can have many interests, If the property is deleted , all related interests are deleted
 
     property = models.ForeignKey(
         Property,
         on_delete=models.CASCADE,
         related_name="interests"
     )
+#One client can show interest in many properties ,If client account is deleted ,interests removed
 
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,

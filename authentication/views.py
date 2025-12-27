@@ -5,7 +5,10 @@ from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from .serializers import RegisterSerializer, ProfileSerializer,ChangePasswordSerializer,ResetPasswordConfirmSerializer,ResetPasswordRequestSerializer,LoginSerializer,AdminOTPVerifySerializer
+from .serializers.auth import RegisterSerializer, LoginSerializer, AdminOTPVerifySerializer
+from .serializers.otp import SendPhoneOTPSerializer,VerifyPhoneOTPSerializer
+from .serializers.password import ResetPasswordConfirmSerializer,ResetPasswordRequestSerializer,ChangePasswordSerializer
+from .serializers.profile import ProfileSerializer
 from .models import Profile,PasswordResetOTP,AdminLoginOTP,PhoneOTP
 from django.core.mail import send_mail
 from rest_framework.exceptions import AuthenticationFailed,ValidationError
@@ -14,6 +17,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import random
+from drf_yasg.utils import swagger_auto_schema
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -35,15 +39,14 @@ class RegisterView(APIView):
     },
     status=201
 )
-
-
-
 class LoginView(APIView):
     serializer_class = LoginSerializer
-    permission_classes = []
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=LoginSerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)  #If the serializer data is invalid, immediately raise an exception instead of returning False
         user = authenticate(
             username=serializer.validated_data["username"],
             password=serializer.validated_data["password"]
@@ -53,9 +56,8 @@ class LoginView(APIView):
             raise AuthenticationFailed("Invalid credentials")
             
         if user.is_superuser:
-        # delete old OTPs
+        #Old OTPs are deleted, New 6-digit OTP is generated, OTP is emailed,  Login is paused
             AdminLoginOTP.objects.filter(user=user).delete()
-
             otp = str(random.randint(100000, 999999))
             AdminLoginOTP.objects.create(user=user, otp=otp)
 
@@ -73,7 +75,7 @@ class LoginView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
-
+  #load profile for non admin users
         profile = user.profile
 
         # SELLER & BROKER GATES
@@ -84,17 +86,18 @@ class LoginView(APIView):
                 
             if not profile.is_admin_approved:
                 raise ValidationError("Admin approval pending")
-
-                
-
+        #Generate JWT tokens
         refresh = RefreshToken.for_user(user)
+        #Store tokens securely in cookies
         response = Response({"role": profile.role})
+        #access token
         response.set_cookie(
             key="access",
             value=str(refresh.access_token),
             httponly=True,
-            samesite="Lax"
+            samesite="Lax"  #none in production
         )
+        #refresh token
         response.set_cookie(
             key="refresh",
             value=str(refresh),
@@ -105,7 +108,10 @@ class LoginView(APIView):
 #fetch current user
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-
+    # @swagger_auto_schema(request_body=ProfileSerializer)
+    @swagger_auto_schema(
+        security=[{'cookieAuth': []}]
+    )
     def get(self, request):
         user = request.user
 
@@ -115,8 +121,7 @@ class ProfileView(APIView):
                 "username": user.username,
                 "email": user.email
             })
-
-        profile = user.profile   # ✅ FIX
+        profile = user.profile   #One-to-one relation , Contains role & approval status
 
         if profile.role in ["seller", "broker"]:
             if not profile.is_admin_approved:
@@ -124,10 +129,8 @@ class ProfileView(APIView):
                     {"error": "Admin approval pending"},
                     status=403
                 )
-
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
-
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -144,27 +147,21 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = request.user
         old_password = serializer.validated_data["old_password"]
         new_password = serializer.validated_data["new_password"]
-
         #  Verify old password
         if not user.check_password(old_password):
             raise ValidationError("Old password is incorrect")
-
-            
         user.set_password(new_password)
         user.save()
-
-        # (Optional but recommended) logout user
+        
         response = Response(
             {"message": "Password changed successfully"},
             status=status.HTTP_200_OK
-        )
+        )#Forces re-login with new password
         response.delete_cookie("access")
         response.delete_cookie("refresh")
-
         return response
     
 class ResetPasswordRequestView(APIView):
@@ -172,22 +169,16 @@ class ResetPasswordRequestView(APIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         email = serializer.validated_data["email"]
-
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise ValidationError("User with this email does not exist")
-            
         # Delete old OTPs
         PasswordResetOTP.objects.filter(user=user).delete()
-
         # Generate OTP
         otp = str(random.randint(100000, 999999))
-
         PasswordResetOTP.objects.create(user=user, otp=otp)
-
         # Send OTP
         send_mail(
             subject="Password Reset OTP",
@@ -195,7 +186,6 @@ class ResetPasswordRequestView(APIView):
             from_email=None,
             recipient_list=[email],
         )
-
         return Response(
             {"message": "OTP sent to email"},
             status=status.HTTP_200_OK
@@ -206,33 +196,24 @@ class ResetPasswordConfirmView(APIView):
     def post(self, request):
         serializer = ResetPasswordConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         email = serializer.validated_data["email"]
         otp = serializer.validated_data["otp"]
         new_password = serializer.validated_data["new_password"]
-
         try:
             user = User.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user, otp=otp)
         except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
-            
             raise ValidationError("Invalid OTP or email")
-
-            
 
         if otp_obj.is_expired():
             otp_obj.delete()
 
             raise ValidationError("OTP expired")
-
-           
         # Reset password
         user.set_password(new_password)
         user.save()
-
         # Delete OTP
         otp_obj.delete()
-
         return Response(
             {"message": "Password reset successful"},
             status=status.HTTP_200_OK
@@ -240,16 +221,12 @@ class ResetPasswordConfirmView(APIView):
 
 class AdminOTPVerifyView(APIView):
     serializer_class = AdminOTPVerifySerializer
-    permission_classes = []
-
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         username = serializer.validated_data["username"]
         otp = serializer.validated_data["otp"]
-
-        
         try:
             user = User.objects.get(username=username, is_superuser=True)
             otp_obj = AdminLoginOTP.objects.get(user=user, otp=otp)
@@ -259,7 +236,6 @@ class AdminOTPVerifyView(APIView):
         if otp_obj.is_expired():
             otp_obj.delete()
             raise ValidationError("OTP expired")
-           
         # OTP valid → issue JWT
         refresh = RefreshToken.for_user(user)
         otp_obj.delete()
@@ -268,34 +244,40 @@ class AdminOTPVerifyView(APIView):
         response.set_cookie("access", str(refresh.access_token), httponly=True)
         response.set_cookie("refresh", str(refresh), httponly=True)
         return response
-    
+ #Creates a Twilio client using credentials from settings to communicate with Twilio   
 client = Client(
     settings.TWILIO_ACCOUNT_SID,
     settings.TWILIO_AUTH_TOKEN
 )
-@method_decorator(csrf_exempt, name="dispatch")
+
+@method_decorator(csrf_exempt, name="dispatch")  #It disables CSRF protection for this API view,All requests to this view bypass CSRF checks
+#This endpoint Is public (AllowAny), Is called from frontend , Does not use session authentication , Uses OTP (not cookies)
 class SendPhoneOTPView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        phone_number = request.data.get("phone_number")
+        # Validate request data using serializer (Swagger-friendly)
+        serializer = SendPhoneOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if not phone_number:
-            return Response(
-                {"error": "phone_number required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        phone_number = serializer.validated_data["phone_number"]
 
-        try:
+        try:  #Uses Twilio Verify service to send an SMS OTP to the given phone number
             client.verify \
                 .services(settings.TWILIO_VERIFY_SID) \
                 .verifications \
                 .create(to=phone_number, channel="sms")
 
-            return Response({"message": "OTP sent"}, status=200)
+            return Response(
+                {"message": "OTP sent"},
+                status=status.HTTP_200_OK
+            )  #Confirms OTP was sent successfully.
 
         except Exception as e:
-            return Response({"error": str(e)}, status=500)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -303,27 +285,20 @@ class VerifyPhoneOTPView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        phone_number = request.data.get("phone_number")
-        otp = request.data.get("otp")
+        # Validate request data using serializer (Swagger-friendly)
+        serializer = VerifyPhoneOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if not phone_number or not otp:
-            return Response(
-                {"error": "phone_number and otp required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        phone_number = serializer.validated_data["phone_number"]
+        otp = serializer.validated_data["otp"]
 
-        # client = Client(
-        #     settings.TWILIO_ACCOUNT_SID,
-        #     settings.TWILIO_AUTH_TOKEN
-        # )
-
-        try:
+        try:  #Uses Twilio Verify to check whether the OTP is correct.
             verification_check = client.verify \
                 .services(settings.TWILIO_VERIFY_SID) \
                 .verification_checks \
                 .create(to=phone_number, code=otp)
 
-            if verification_check.status == "approved":
+            if verification_check.status == "approved":    #If Twilio returns approved, the phone number is verified.
                 return Response(
                     {"verified": True},
                     status=status.HTTP_200_OK

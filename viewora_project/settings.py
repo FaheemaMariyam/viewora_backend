@@ -45,11 +45,11 @@ INSTALLED_APPS = [
     'drf_yasg',
     'django_filters',
     'interests',
-    'corsheaders',
+    'corsheaders',  #allow frontend access
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',    #Required for cookie handling
     'django.middleware.common.CommonMiddleware',
 
     'django.middleware.security.SecurityMiddleware',
@@ -59,12 +59,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+#frontend to Django backend, Allows cookies (JWT) to be sent
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOW_HEADERS = [
+CORS_ALLOW_HEADERS = [    #Allows JWT headers if needed,Allows JSON POST requests
+
+
     'authorization',
     'content-type',
 ]
@@ -183,3 +187,14 @@ TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID")
 
 # print("DEBUG TWILIO_ACCOUNT_SID =", TWILIO_ACCOUNT_SID)
 # print("DEBUG TWILIO_VERIFY_SID =", TWILIO_VERIFY_SID)
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,  # important
+    'SECURITY_DEFINITIONS': {
+        'cookieAuth': {
+            'type': 'apiKey',
+            'in': 'cookie',
+            'name': 'access',
+        }
+    },
+}

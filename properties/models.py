@@ -1,8 +1,7 @@
 from django.db import models
 from django.conf import settings
 
-User = settings.AUTH_USER_MODEL
-
+User = settings.AUTH_USER_MODEL  #Django’s configured user model,Safe for future custom user models
 
 class Property(models.Model):
 
@@ -63,6 +62,8 @@ class Property(models.Model):
     locality = models.CharField(max_length=100)
     address = models.TextField()
 
+   #Enables Map view,Distance calculations,Nearby property search
+
     latitude = models.DecimalField(
         max_digits=9, decimal_places=6,
         null=True, blank=True
@@ -72,14 +73,15 @@ class Property(models.Model):
         null=True, blank=True
     )
 
-    #  Nearby facilities (flexible & scalable)
+    #  Nearby facilities (,used json field for flexibility,No schema migration needed later, AI-friendly in later
+
     nearby_places = models.JSONField(
         null=True,
         blank=True,
         help_text="schools, hospitals, bus stand, metro, etc."
     )
 
-    # 🛏 Property features
+    #  Property features
     bedrooms = models.PositiveIntegerField(null=True, blank=True)
     bathrooms = models.PositiveIntegerField(null=True, blank=True)
     parking_available = models.BooleanField(default=False)
@@ -95,9 +97,9 @@ class Property(models.Model):
         choices=STATUS_CHOICES,
         default='published'
     )
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)  #soft delete
 
-    view_count = models.PositiveIntegerField(default=0)
+    view_count = models.PositiveIntegerField(default=0)  #for analytics later
     interest_count = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
