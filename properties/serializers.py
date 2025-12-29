@@ -91,20 +91,36 @@ class PropertyListSerializer(serializers.ModelSerializer):
 #         return obj.interests.filter(
 #             client=request.user
 #         ).exists()
+# class PropertyDetailSerializer(serializers.ModelSerializer):
+#     seller = serializers.StringRelatedField()
+#     is_interested = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Property
+#         fields = "__all__"
+
+#     def get_is_interested(self, obj):
+#         request = self.context.get("request")
+#         if not request or not request.user.is_authenticated:
+#             return False
+
+#         return PropertyInterest.objects.filter(
+#             property=obj,
+#             client=request.user
+#         ).exists()
 class PropertyDetailSerializer(serializers.ModelSerializer):
-    seller = serializers.StringRelatedField()
     is_interested = serializers.SerializerMethodField()
+    active_interest_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
         fields = "__all__"
 
     def get_is_interested(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return False
+        user = self.context["request"].user
+        return obj.interests.filter(client=user).exists()
 
-        return PropertyInterest.objects.filter(
-            property=obj,
-            client=request.user
-        ).exists()
+    def get_active_interest_id(self, obj):
+        user = self.context["request"].user
+        interest = obj.interests.filter(client=user).first()
+        return interest.id if interest else None

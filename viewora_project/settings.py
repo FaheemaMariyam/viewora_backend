@@ -17,7 +17,21 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
-
+if os.getenv("USE_REDIS") == "true":
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("redis", 6379)],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -33,6 +47,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne', #Daphne replaces Django’s default dev server with an ASGI-capable server.
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,7 +61,19 @@ INSTALLED_APPS = [
     'django_filters',
     'interests',
     'corsheaders',  #allow frontend access
+    'channels',
+    'chat',
+    
 ]
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("127.0.0.1", 6379)],
+#         },
+#     },
+# }
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',    #Required for cookie handling
@@ -93,6 +120,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'viewora_project.wsgi.application'
 
+ASGI_APPLICATION = 'viewora_project.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
