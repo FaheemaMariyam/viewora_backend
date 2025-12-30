@@ -95,14 +95,18 @@ class LoginView(APIView):
             key="access",
             value=str(refresh.access_token),
             httponly=True,
-            samesite="Lax"  #none in production
+            # samesite="Lax"  #none in production
+            samesite="Lax",   # 🔥 CHANGE
+            secure=False
         )
         #refresh token
         response.set_cookie(
             key="refresh",
             value=str(refresh),
             httponly=True,
-            samesite="Lax"
+            # samesite="Lax"
+            samesite="Lax",   # 🔥 CHANGE
+            secure=False
         )
         return response
 #fetch current user
@@ -331,8 +335,23 @@ class AdminOTPVerifyView(APIView):
         otp_obj.delete()
 
         response = Response({"role": "admin"})
-        response.set_cookie("access", str(refresh.access_token), httponly=True)
-        response.set_cookie("refresh", str(refresh), httponly=True)
+        # response.set_cookie("access", str(refresh.access_token), httponly=True)
+        # response.set_cookie("refresh", str(refresh), httponly=True)
+        response.set_cookie(
+            "access",
+            str(refresh.access_token),
+            httponly=True,
+            samesite="Lax",
+            secure=False
+        )
+        response.set_cookie(
+            "refresh",
+            str(refresh),
+            httponly=True,
+            samesite="Lax",
+            secure=False
+        )
+
         return response
  #Creates a Twilio client using credentials from settings to communicate with Twilio   
 client = Client(

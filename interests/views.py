@@ -28,25 +28,45 @@ class CreateInterestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        interest, created = PropertyInterest.objects.get_or_create(
-            property=property_obj,
-            client=request.user
-        )
+        # interest, created = PropertyInterest.objects.get_or_create(
+        #     property=property_obj,
+        #     client=request.user
+        # )
         
+        # if not created:
+        #     return Response(
+        #         {"message": "Already expressed interest"},
+        #         status=status.HTTP_400_BAD_REQUEST
+        #     )
+        # assign_broker_to_interest(interest)
+
+        # property_obj.interest_count += 1
+        # property_obj.save(update_fields=["interest_count"])
+
+        # return Response(
+        #     {"message": "Interest created"},
+        #     status=status.HTTP_201_CREATED
+        # )
+        interest, created = PropertyInterest.objects.get_or_create(
+        property=property_obj,
+        client=request.user
+    )
+
         if not created:
             return Response(
-                {"message": "Already expressed interest"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        assign_broker_to_interest(interest)
+            {"message": "Already expressed interest"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-        property_obj.interest_count += 1
-        property_obj.save(update_fields=["interest_count"])
+# 🔥 DO NOTHING ELSE HERE
+# Signals handle broker + count
 
         return Response(
             {"message": "Interest created"},
             status=status.HTTP_201_CREATED
         )
+
+
 
 class BrokerAcceptInterestView(APIView):
     permission_classes = [IsApprovedBroker]

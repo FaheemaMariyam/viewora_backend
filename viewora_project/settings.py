@@ -17,21 +17,25 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
-if os.getenv("USE_REDIS") == "true":
+
+
+USE_REDIS = os.getenv("USE_REDIS") == "true"
+
+if USE_REDIS:
+    # print("USE_REDIS =", os.getenv("USE_REDIS"))
+    # print("REDIS_HOST =", os.getenv("REDIS_HOST"))
+    # print("REDIS_PORT =", os.getenv("REDIS_PORT"))
+
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [("redis", 6379)],
+                "hosts": [(os.getenv("REDIS_HOST"), int(os.getenv("REDIS_PORT")))],
             },
         },
     }
-else:
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-        },
-    }
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -41,7 +45,9 @@ SECRET_KEY = 'django-insecure-9%+gue#_gg@7q%34e)d$t+8lvp-!c&bh7ts1=9uf&9gomtpb=i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
 
 
 # Application definition
@@ -59,7 +65,8 @@ INSTALLED_APPS = [
     'properties',
     'drf_yasg',
     'django_filters',
-    'interests',
+    # 'interests',
+    'interests.apps.InterestsConfig',
     'corsheaders',  #allow frontend access
     'channels',
     'chat',
@@ -90,6 +97,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    # "http://127.0.0.1:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -100,6 +108,10 @@ CORS_ALLOW_HEADERS = [    #Allows JWT headers if needed,Allows JSON POST request
     'content-type',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    # "http://127.0.0.1:5173",
+]
 
 ROOT_URLCONF = 'viewora_project.urls'
 
