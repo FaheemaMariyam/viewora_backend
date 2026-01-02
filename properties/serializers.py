@@ -1,21 +1,27 @@
 from rest_framework import serializers
-from .models import Property
+
 from interests.models import PropertyInterest
+
+from .models import Property
+
 
 class PropertyCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
-        exclude = (      #seller cannot see this
-            'id',
-            'seller',
-            'status',
-            'view_count',
-            'interest_count',
-            'created_at',
-            'updated_at',
+        exclude = (  # seller cannot see this
+            "id",
+            "seller",
+            "status",
+            "view_count",
+            "interest_count",
+            "created_at",
+            "updated_at",
         )
+
+
 # class PropertyListSerializer(serializers.ModelSerializer):
 #     seller = serializers.StringRelatedField()
+
 
 #     class Meta:
 #         model = Property
@@ -42,21 +48,21 @@ class PropertyListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = [
-            'id',
-            'seller',
-            'title',
-            'price',
-            'city',
-            'locality',
-            'property_type',
-            'area_size',
-            'area_unit',
-            'bedrooms',
-            'bathrooms',
-            'view_count',
-            'interest_count',
-            'created_at',
-            'is_interested',   # ✅ ADD
+            "id",
+            "seller",
+            "title",
+            "price",
+            "city",
+            "locality",
+            "property_type",
+            "area_size",
+            "area_unit",
+            "bedrooms",
+            "bathrooms",
+            "view_count",
+            "interest_count",
+            "created_at",
+            "is_interested",  # ✅ ADD
         ]
 
     def get_is_interested(self, obj):
@@ -66,9 +72,10 @@ class PropertyListSerializer(serializers.ModelSerializer):
             return False
 
         return PropertyInterest.objects.filter(
-            property=obj,
-            client=request.user
+            property=obj, client=request.user
         ).exists()
+
+
 # class PropertyDetailSerializer(serializers.ModelSerializer):
 #     seller = serializers.StringRelatedField()
 
@@ -103,6 +110,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
 #         request = self.context.get("request")
 #         if not request or not request.user.is_authenticated:
 #             return False
+
 
 #         return PropertyInterest.objects.filter(
 #             property=obj,

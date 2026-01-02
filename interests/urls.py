@@ -1,26 +1,43 @@
 from django.urls import path
-from .views import CreateInterestView,BrokerAcceptInterestView,BrokerCloseDealView,BrokerAssignedInterestsView
+
+from .views import (
+    BrokerAcceptInterestView,
+    BrokerAssignedInterestsView,
+    BrokerAvailableInterestsView,
+    BrokerCloseDealView,
+    CreateInterestView,
+    ClientInterestsView,
+)
 
 urlpatterns = [
     path(
         "property/<int:property_id>/interest/",
         CreateInterestView.as_view(),
-        name="create-interest"
+        name="create-interest",
     ),
-     path(
+    path(
+        "broker/available-interests/",
+        BrokerAvailableInterestsView.as_view(),
+        name="broker-available-interests",
+    ),
+    path(
         "interest/<int:interest_id>/accept/",
         BrokerAcceptInterestView.as_view(),
-        name="broker-accept-interest"
+        name="broker-accept-interest",
     ),
     path(
         "interest/<int:interest_id>/close/",
         BrokerCloseDealView.as_view(),
-        name="broker-close-deal"
+        name="broker-close-deal",
     ),
     path(
-    "broker/interests/",
-    BrokerAssignedInterestsView.as_view(),
-    name="broker-assigned-interests"
-)
-
+        "broker/interests/",
+        BrokerAssignedInterestsView.as_view(),
+        name="broker-assigned-interests",
+    ),
+    path(
+    "client/interests/",
+    ClientInterestsView.as_view(),
+    name="client-interests",
+    ),
 ]

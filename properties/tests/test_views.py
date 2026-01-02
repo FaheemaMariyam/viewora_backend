@@ -1,25 +1,22 @@
-
-from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
 from rest_framework import status
+from rest_framework.test import APITestCase
 
 from authentication.models import Profile
 from properties.models import Property
 
-#Test: seller can create property
+
+# Test: seller can create property
 class PropertyCreateViewTest(APITestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="seller",
-            password="pass123"
-        )
+        self.user = User.objects.create_user(username="seller", password="pass123")
 
         Profile.objects.create(
             user=self.user,
             role="seller",
             is_admin_approved=True,
-            is_profile_complete=True
+            is_profile_complete=True,
         )
 
         self.client.force_authenticate(user=self.user)
@@ -35,45 +32,39 @@ class PropertyCreateViewTest(APITestCase):
                 "area_size": 900,
                 "city": "Kochi",
                 "locality": "Kaloor",
-                "address": "Some address"
+                "address": "Some address",
             },
-            format="json"
+            format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Property.objects.count(), 1)
-  #Test: non-seller cannot create property
-    def test_create_property_denied_for_client(self):
-        client_user = User.objects.create_user(
-            username="client",
-            password="pass123"
-        )
 
-        Profile.objects.create(
-            user=client_user,
-            role="client",
-            is_admin_approved=True
-        )
+    # Test: non-seller cannot create property
+    def test_create_property_denied_for_client(self):
+        client_user = User.objects.create_user(username="client", password="pass123")
+
+        Profile.objects.create(user=client_user, role="client", is_admin_approved=True)
 
         self.client.force_authenticate(user=client_user)
 
         response = self.client.post("/api/properties/create/", {})
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-#Test: property list requires authentication
+
+
+# Test: property list requires authentication
 class PropertyListViewTest(APITestCase):
 
     def test_list_requires_auth(self):
         response = self.client.get("/api/properties/view/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-#Test: list returns only published & active
+
+    # Test: list returns only published & active
     def test_list_properties_success(self):
         user = User.objects.create_user("seller2", "pass")
         Profile.objects.create(
-            user=user,
-            role="seller",
-            is_admin_approved=True,
-            is_profile_complete=True
+            user=user, role="seller", is_admin_approved=True, is_profile_complete=True
         )
 
         Property.objects.create(
@@ -87,7 +78,7 @@ class PropertyListViewTest(APITestCase):
             locality="Vytilla",
             address="addr",
             status="published",
-            is_active=True
+            is_active=True,
         )
 
         self.client.force_authenticate(user=user)

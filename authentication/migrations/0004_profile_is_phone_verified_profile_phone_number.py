@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0003_adminloginotp'),
+        ("authentication", "0003_adminloginotp"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='profile',
-            name='is_phone_verified',
+            model_name="profile",
+            name="is_phone_verified",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='phone_number',
+            model_name="profile",
+            name="phone_number",
             field=models.CharField(blank=True, max_length=15, null=True),
         ),
     ]

@@ -1,11 +1,8 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
 
-from authentication.serializers.auth import (
-    RegisterSerializer,
-    LoginSerializer
-)
+from authentication.serializers.auth import LoginSerializer, RegisterSerializer
+
 
 class RegisterSerializerTest(TestCase):
 
@@ -15,7 +12,7 @@ class RegisterSerializerTest(TestCase):
             "email": "new@test.com",
             "password": "StrongPass123",
             "role": "client",
-            "phone_number": "9999999999"
+            "phone_number": "9999999999",
         }
 
         serializer = RegisterSerializer(data=data)
@@ -34,10 +31,7 @@ class RegisterSerializerTest(TestCase):
 class LoginSerializerTest(TestCase):
 
     def test_login_serializer_valid(self):
-        serializer = LoginSerializer(data={
-            "username": "test",
-            "password": "pass"
-        })
+        serializer = LoginSerializer(data={"username": "test", "password": "pass"})
         self.assertTrue(serializer.is_valid())
 
     def test_login_serializer_missing_password(self):

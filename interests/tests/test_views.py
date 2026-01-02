@@ -1,12 +1,13 @@
-from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
 from rest_framework import status
+from rest_framework.test import APITestCase
 
 from authentication.models import Profile
-from properties.models import Property
 from interests.models import PropertyInterest
+from properties.models import Property
 
-#client create interest
+
+# client create interest
 class CreateInterestViewTest(APITestCase):
 
     def setUp(self):
@@ -15,7 +16,7 @@ class CreateInterestViewTest(APITestCase):
             user=self.seller,
             role="seller",
             is_admin_approved=True,
-            is_profile_complete=True
+            is_profile_complete=True,
         )
 
         self.client_user = User.objects.create_user("client", "pass")
@@ -30,7 +31,7 @@ class CreateInterestViewTest(APITestCase):
             area_size=900,
             city="Kochi",
             locality="Kaloor",
-            address="Addr"
+            address="Addr",
         )
 
         self.client.force_authenticate(user=self.client_user)
@@ -43,7 +44,7 @@ class CreateInterestViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(PropertyInterest.objects.count(), 1)
 
-#Client cannot interest own property
+    # Client cannot interest own property
     def test_interest_own_property_denied(self):
         """
         Seller cannot create interest because permission is IsClientUser
@@ -56,23 +57,20 @@ class CreateInterestViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-#broker accept interest
+
+# broker accept interest
 class BrokerAcceptInterestTest(APITestCase):
 
     def setUp(self):
         self.broker = User.objects.create_user("broker", "pass")
-        Profile.objects.create(
-            user=self.broker,
-            role="broker",
-            is_admin_approved=True
-        )
+        Profile.objects.create(user=self.broker, role="broker", is_admin_approved=True)
 
         self.seller = User.objects.create_user("seller", "pass")
         Profile.objects.create(
             user=self.seller,
             role="seller",
             is_admin_approved=True,
-            is_profile_complete=True
+            is_profile_complete=True,
         )
 
         self.client_user = User.objects.create_user("client", "pass")
@@ -87,14 +85,14 @@ class BrokerAcceptInterestTest(APITestCase):
             area_size=1200,
             city="Kochi",
             locality="Edappally",
-            address="Addr"
+            address="Addr",
         )
 
         self.interest = PropertyInterest.objects.create(
             property=self.property,
             client=self.client_user,
             broker=self.broker,
-            status="assigned"
+            status="assigned",
         )
 
         self.client.force_authenticate(user=self.broker)
@@ -109,23 +107,17 @@ class BrokerAcceptInterestTest(APITestCase):
         self.interest.refresh_from_db()
         self.assertEqual(self.interest.status, "in_progress")
 
-#broker close the deal
+
+# broker close the deal
 class BrokerCloseDealTest(APITestCase):
 
     def test_close_deal_success(self):
         broker = User.objects.create_user("broker2", "pass")
-        Profile.objects.create(
-            user=broker,
-            role="broker",
-            is_admin_approved=True
-        )
+        Profile.objects.create(user=broker, role="broker", is_admin_approved=True)
 
         seller = User.objects.create_user("seller2", "pass")
         Profile.objects.create(
-            user=seller,
-            role="seller",
-            is_admin_approved=True,
-            is_profile_complete=True
+            user=seller, role="seller", is_admin_approved=True, is_profile_complete=True
         )
 
         client = User.objects.create_user("client2", "pass")
@@ -140,21 +132,16 @@ class BrokerCloseDealTest(APITestCase):
             area_size=2500,
             city="Kochi",
             locality="Panampilly",
-            address="Addr"
+            address="Addr",
         )
 
         interest = PropertyInterest.objects.create(
-            property=prop,
-            client=client,
-            broker=broker,
-            status="in_progress"
+            property=prop, client=client, broker=broker, status="in_progress"
         )
 
         self.client.force_authenticate(user=broker)
 
-        response = self.client.post(
-            f"/api/interests/interest/{interest.id}/close/"
-        )
+        response = self.client.post(f"/api/interests/interest/{interest.id}/close/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -163,16 +150,14 @@ class BrokerCloseDealTest(APITestCase):
 
         self.assertEqual(prop.status, "sold")
         self.assertEqual(interest.status, "closed")
-#broker assign interest list
+
+
+# broker assign interest list
 class BrokerAssignedInterestsViewTest(APITestCase):
 
     def test_assigned_interests_list(self):
         broker = User.objects.create_user("broker3", "pass")
-        Profile.objects.create(
-            user=broker,
-            role="broker",
-            is_admin_approved=True
-        )
+        Profile.objects.create(user=broker, role="broker", is_admin_approved=True)
 
         self.client.force_authenticate(user=broker)
 

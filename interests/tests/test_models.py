@@ -1,19 +1,17 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
+
 from authentication.models import Profile
-from properties.models import Property
 from interests.models import PropertyInterest
+from properties.models import Property
+
 
 class PropertyInterestModelTest(TestCase):
 
     def test_interest_creation_and_str(self):
         seller = User.objects.create_user("seller", "pass")
         Profile.objects.create(
-            user=seller,
-            role="seller",
-            is_admin_approved=True,
-            is_profile_complete=True
+            user=seller, role="seller", is_admin_approved=True, is_profile_complete=True
         )
 
         client = User.objects.create_user("client", "pass")
@@ -28,13 +26,10 @@ class PropertyInterestModelTest(TestCase):
             area_size=1000,
             city="Kochi",
             locality="Kaloor",
-            address="Addr"
+            address="Addr",
         )
 
-        interest = PropertyInterest.objects.create(
-            property=prop,
-            client=client
-        )
+        interest = PropertyInterest.objects.create(property=prop, client=client)
 
         self.assertEqual(interest.status, "requested")
         self.assertIn("House", str(interest))

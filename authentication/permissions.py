@@ -9,17 +9,19 @@ class IsAdminUser(BasePermission):
 class IsApprovedBroker(BasePermission):
     def has_permission(self, request, view):
         p = request.user.profile
-        return p.role == 'broker' and p.is_admin_approved
+        return p.role == "broker" and p.is_admin_approved
 
 
 class IsApprovedSeller(BasePermission):
     def has_permission(self, request, view):
         p = request.user.profile
-        return p.role == 'seller' and p.is_admin_approved
+        return p.role == "seller" and p.is_admin_approved
+
+
 class IsClientUser(BasePermission):
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and
-            hasattr(request.user, 'profile') and
-            request.user.profile.role == 'client'
+            request.user.is_authenticated
+            and hasattr(request.user, "profile")
+            and request.user.profile.role == "client"
         )

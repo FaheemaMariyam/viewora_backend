@@ -1,26 +1,18 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
-from authentication.permissions import (
-    IsApprovedSeller,
-    IsApprovedBroker,
-    IsClientUser
-)
 from authentication.models import Profile
+from authentication.permissions import IsApprovedBroker, IsApprovedSeller, IsClientUser
 
 factory = APIRequestFactory()
+
 
 class PermissionTest(TestCase):
 
     def test_approved_seller_allowed(self):
         user = User.objects.create_user("seller", "pass")
-        Profile.objects.create(
-            user=user,
-            role="seller",
-            is_admin_approved=True
-        )
+        Profile.objects.create(user=user, role="seller", is_admin_approved=True)
 
         request = factory.get("/")
         request.user = user
@@ -29,11 +21,7 @@ class PermissionTest(TestCase):
 
     def test_unapproved_broker_denied(self):
         user = User.objects.create_user("broker", "pass")
-        Profile.objects.create(
-            user=user,
-            role="broker",
-            is_admin_approved=False
-        )
+        Profile.objects.create(user=user, role="broker", is_admin_approved=False)
 
         request = factory.get("/")
         request.user = user

@@ -1,15 +1,13 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
+
 from properties.models import Property
+
 
 class PropertyModelTest(TestCase):
 
     def test_property_creation_and_str(self):
-        user = User.objects.create_user(
-            username="seller",
-            password="pass123"
-        )
+        user = User.objects.create_user(username="seller", password="pass123")
 
         prop = Property.objects.create(
             seller=user,
@@ -20,7 +18,7 @@ class PropertyModelTest(TestCase):
             area_size=1200,
             city="Kochi",
             locality="Edappally",
-            address="Some address"
+            address="Some address",
         )
 
         self.assertEqual(str(prop), "Test House - Kochi")

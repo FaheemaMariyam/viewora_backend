@@ -15,36 +15,93 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Profile',
+            name="Profile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.CharField(choices=[('client', 'client'), ('seller', 'seller'), ('broker', 'broker')], max_length=10)),
-                ('profile_image', models.ImageField(blank=True, null=True, upload_to='profile_images/')),
-                ('is_profile_complete', models.BooleanField(default=False)),
-                ('is_admin_approved', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[
+                            ("client", "client"),
+                            ("seller", "seller"),
+                            ("broker", "broker"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "profile_image",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="profile_images/"
+                    ),
+                ),
+                ("is_profile_complete", models.BooleanField(default=False)),
+                ("is_admin_approved", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='BrokerDetails',
+            name="BrokerDetails",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('city', models.CharField(max_length=100)),
-                ('area', models.CharField(max_length=100)),
-                ('license_number', models.CharField(max_length=100)),
-                ('certificate', models.FileField(upload_to='broker_docs/')),
-                ('profile', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='authentication.profile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("city", models.CharField(max_length=100)),
+                ("area", models.CharField(max_length=100)),
+                ("license_number", models.CharField(max_length=100)),
+                ("certificate", models.FileField(upload_to="broker_docs/")),
+                (
+                    "profile",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="authentication.profile",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='SellerDetails',
+            name="SellerDetails",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('city', models.CharField(max_length=100)),
-                ('area', models.CharField(max_length=100)),
-                ('ownership_proof', models.FileField(upload_to='seller_docs/')),
-                ('profile', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='authentication.profile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("city", models.CharField(max_length=100)),
+                ("area", models.CharField(max_length=100)),
+                ("ownership_proof", models.FileField(upload_to="seller_docs/")),
+                (
+                    "profile",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="authentication.profile",
+                    ),
+                ),
             ],
         ),
     ]

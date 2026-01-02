@@ -10,24 +10,68 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('properties', '0001_initial'),
+        ("properties", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PropertyInterest',
+            name="PropertyInterest",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('requested', 'Requested'), ('assigned', 'Broker Assigned'), ('in_progress', 'In Progress'), ('closed', 'Closed'), ('cancelled', 'Cancelled')], default='requested', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('broker', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='assigned_interests', to=settings.AUTH_USER_MODEL)),
-                ('client', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='property_interests', to=settings.AUTH_USER_MODEL)),
-                ('property', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='interests', to='properties.property')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("requested", "Requested"),
+                            ("assigned", "Broker Assigned"),
+                            ("in_progress", "In Progress"),
+                            ("closed", "Closed"),
+                            ("cancelled", "Cancelled"),
+                        ],
+                        default="requested",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "broker",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="assigned_interests",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "client",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="property_interests",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "property",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="interests",
+                        to="properties.property",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('property', 'client')},
+                "unique_together": {("property", "client")},
             },
         ),
     ]

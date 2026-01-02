@@ -1,7 +1,8 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
+
 from properties.serializers import PropertyCreateSerializer
+
 
 class PropertyCreateSerializerTest(TestCase):
 
@@ -14,7 +15,7 @@ class PropertyCreateSerializerTest(TestCase):
             "area_size": 2000,
             "city": "Trivandrum",
             "locality": "Kowdiar",
-            "address": "Address here"
+            "address": "Address here",
         }
 
         serializer = PropertyCreateSerializer(data=data)

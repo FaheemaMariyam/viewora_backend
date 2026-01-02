@@ -1,14 +1,14 @@
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.test import TestCase
 
 from authentication.models import Profile
-from properties.models import Property
 from interests.models import PropertyInterest
 from interests.serializers import (
     PropertyInterestCreateSerializer,
-    PropertyInterestListSerializer
+    PropertyInterestListSerializer,
 )
+from properties.models import Property
+
 
 class PropertyInterestSerializerTest(TestCase):
 
@@ -18,7 +18,7 @@ class PropertyInterestSerializerTest(TestCase):
             user=self.seller,
             role="seller",
             is_admin_approved=True,
-            is_profile_complete=True
+            is_profile_complete=True,
         )
 
         self.client_user = User.objects.create_user("client", "pass")
@@ -33,7 +33,7 @@ class PropertyInterestSerializerTest(TestCase):
             area_size=900,
             city="Kochi",
             locality="Kaloor",
-            address="Addr"
+            address="Addr",
         )
 
     def test_property_interest_create_serializer_valid(self):
@@ -48,8 +48,7 @@ class PropertyInterestSerializerTest(TestCase):
 
     def test_property_interest_list_serializer(self):
         interest = PropertyInterest.objects.create(
-            property=self.property,
-            client=self.client_user
+            property=self.property, client=self.client_user
         )
 
         serializer = PropertyInterestListSerializer(interest)

@@ -6,17 +6,25 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0006_delete_phoneotp'),
+        ("authentication", "0006_delete_phoneotp"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PhoneOTP',
+            name="PhoneOTP",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('phone_number', models.CharField(max_length=15)),
-                ('otp', models.CharField(max_length=6)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("phone_number", models.CharField(max_length=15)),
+                ("otp", models.CharField(max_length=6)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]
