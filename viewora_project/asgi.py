@@ -1,4 +1,3 @@
-
 import os
 
 from channels.auth import AuthMiddlewareStack

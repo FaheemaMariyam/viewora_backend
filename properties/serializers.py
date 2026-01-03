@@ -62,7 +62,9 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "view_count",
             "interest_count",
             "created_at",
-            "is_interested",  # ✅ ADD
+            "is_interested", 
+            "is_active",
+            "status"
         ]
 
     def get_is_interested(self, obj):

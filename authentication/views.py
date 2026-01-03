@@ -122,7 +122,6 @@ class LoginView(APIView):
         return response
 
 
-
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -175,7 +174,6 @@ class ChangePasswordView(APIView):
         return response
 
 
-
 class ResetPasswordRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordRequestSerializer
@@ -206,7 +204,6 @@ class ResetPasswordRequestView(APIView):
         )
 
         return Response({"message": "OTP sent to email"}, status=status.HTTP_200_OK)
-
 
 
 class ResetPasswordConfirmView(APIView):

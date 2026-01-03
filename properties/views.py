@@ -75,3 +75,48 @@ class PropertyDetailView(APIView):
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SellerPropertyListView(generics.ListAPIView):
+    permission_classes = [IsApprovedSeller]
+    serializer_class = PropertyListSerializer
+
+    def get_queryset(self):
+        return Property.objects.filter(
+            seller=self.request.user,
+            
+        ).order_by("-created_at")
+
+# class SellerPropertyArchiveView(APIView):
+#     permission_classes = [IsApprovedSeller]
+
+#     def patch(self, request, pk):
+#         prop = get_object_or_404(
+#             Property,
+#             id=pk,
+#             seller=request.user
+#         )
+#         prop.is_active = False
+#         prop.status = "archived"
+#         prop.save()
+
+#         return Response({"message": "Property archived"})
+class SellerPropertyToggleArchiveView(APIView):
+    permission_classes = [IsApprovedSeller]
+
+    def patch(self, request, pk):
+        prop = get_object_or_404(
+            Property,
+            id=pk,
+            seller=request.user
+        )
+
+        prop.is_active = not prop.is_active
+        prop.status = "published" if prop.is_active else "archived"
+        prop.save(update_fields=["is_active", "status"])
+
+        return Response({
+            "id": prop.id,
+            "is_active": prop.is_active,
+            "status": prop.status,
+        })

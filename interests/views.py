@@ -1,4 +1,7 @@
+import logging
+
 from django.db import transaction
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -13,8 +16,6 @@ from .serializers import (
     PropertyInterestListSerializer,
 )
 from .services import assign_broker_to_interest
-from django.db.models import Count,Q
-import logging
 
 logger = logging.getLogger("viewora")
 
@@ -34,7 +35,6 @@ class CreateInterestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        
         # )
         interest, created = PropertyInterest.objects.get_or_create(
             property=property_obj, client=request.user
@@ -42,15 +42,15 @@ class CreateInterestView(APIView):
 
         if not created:
             logger.warning(
-        f"Duplicate interest attempt | property={property_obj.id} | client={request.user.id}"
-    )
+                f"Duplicate interest attempt | property={property_obj.id} | client={request.user.id}"
+            )
             return Response(
                 {"message": "Already expressed interest"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         logger.info(
-    f"Interest created | interest_id={interest.id} | property={property_obj.id} | client={request.user.id}"
-)
+            f"Interest created | interest_id={interest.id} | property={property_obj.id} | client={request.user.id}"
+        )
 
         # Signals handle broker + count
 
@@ -66,7 +66,7 @@ class BrokerAcceptInterestView(APIView):
             interest = get_object_or_404(
                 PropertyInterest.objects.select_for_update(),
                 id=interest_id,
-                status="requested"   #  still unclaimed
+                status="requested",  #  still unclaimed
             )
 
             # FIRST broker wins
@@ -74,10 +74,7 @@ class BrokerAcceptInterestView(APIView):
             interest.status = "assigned"
             interest.save(update_fields=["broker", "status"])
 
-            return Response(
-                {"message": "Interest accepted"},
-                status=status.HTTP_200_OK
-            )
+            return Response({"message": "Interest accepted"}, status=status.HTTP_200_OK)
 
 
 class BrokerCloseDealView(APIView):
@@ -119,33 +116,28 @@ class BrokerCloseDealView(APIView):
             )
 
 
-
 class BrokerAssignedInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
 
     def get(self, request):
-        qs = (
-            PropertyInterest.objects
-            .filter(broker=request.user)
-            .annotate(
-                unread_count=Count(
-                    "messages",
-                    filter=Q(messages__is_read=False)
-                    & ~Q(messages__sender=request.user)
-                )
+        qs = PropertyInterest.objects.filter(broker=request.user).annotate(
+            unread_count=Count(
+                "messages",
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=request.user),
             )
         )
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)
 
+
 class BrokerAvailableInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
 
     def get(self, request):
-        qs = PropertyInterest.objects.filter(
-            status="requested"
-        ).select_related("property", "client")
+        qs = PropertyInterest.objects.filter(status="requested").select_related(
+            "property", "client"
+        )
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)
@@ -156,12 +148,11 @@ class ClientInterestsView(APIView):
 
     def get(self, request):
         qs = PropertyInterest.objects.filter(client=request.user).annotate(
-    unread_count=Count(
-        "messages",
-        filter=Q(messages__is_read=False)
-        & ~Q(messages__sender=request.user)
-    )
-)
+            unread_count=Count(
+                "messages",
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=request.user),
+            )
+        )
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)

@@ -5,8 +5,8 @@ from .views import (
     BrokerAssignedInterestsView,
     BrokerAvailableInterestsView,
     BrokerCloseDealView,
-    CreateInterestView,
     ClientInterestsView,
+    CreateInterestView,
 )
 
 urlpatterns = [
@@ -36,8 +36,8 @@ urlpatterns = [
         name="broker-assigned-interests",
     ),
     path(
-    "client/interests/",
-    ClientInterestsView.as_view(),
-    name="client-interests",
+        "client/interests/",
+        ClientInterestsView.as_view(),
+        name="client-interests",
     ),
 ]

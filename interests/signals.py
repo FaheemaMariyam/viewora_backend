@@ -4,14 +4,11 @@ from django.dispatch import receiver
 from .models import PropertyInterest
 
 
-
 @receiver(post_save, sender=PropertyInterest)
 def on_interest_created(sender, instance, created, **kwargs):
     print("🔥 SIGNAL FIRED", instance.id)
     if not created:
         return
-
-   
 
     # Increment interest count
     property_obj = instance.property
