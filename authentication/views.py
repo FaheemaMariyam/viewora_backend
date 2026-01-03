@@ -88,7 +88,9 @@ class LoginView(APIView):
                 status=status.HTTP_200_OK,
             )
         # load profile for non admin users
-        profile = user.profile
+        # profile = user.profile
+        profile = Profile.objects.get(user=user)
+
 
         # SELLER & BROKER GATES
         if profile.role in ["seller", "broker"]:
@@ -344,3 +346,29 @@ class VerifyPhoneOTPView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh_token = request.COOKIES.get("refresh")
+
+        if not refresh_token:
+            raise AuthenticationFailed("Refresh token not found")
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+
+            response = Response({"message": "Token refreshed"})
+            response.set_cookie(
+                key="access",
+                value=access_token,
+                httponly=True,
+                samesite="Lax",
+                secure=False,  # True in production
+            )
+            return response
+
+        except Exception as e:
+            print("REFRESH ERROR:", e)
+            raise AuthenticationFailed("Invalid refresh token")

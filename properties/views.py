@@ -1,29 +1,44 @@
 # properties/views.py
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.permissions import IsApprovedSeller
 
-from .models import Property
+from .models import Property,PropertyImage
 from .pagination import PropertyPagination
 from .serializers import (
     PropertyCreateSerializer,
     PropertyDetailSerializer,
     PropertyListSerializer,
+    SellerPropertyListSerializer,
+    PropertyUpdateSerializer
 )
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import AuthenticationFailed
 
+# class PropertyCreateView(APIView):
+#     permission_classes = [IsApprovedSeller]
 
+#     def post(self, request):
+#         serializer = PropertyCreateSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save(seller=request.user)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
 class PropertyCreateView(APIView):
     permission_classes = [IsApprovedSeller]
 
     def post(self, request):
-        serializer = PropertyCreateSerializer(data=request.data)
+        serializer = PropertyCreateSerializer(
+            data=request.data
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save(seller=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=201)
+
+
 
 
 class PropertyListView(generics.ListAPIView):
@@ -79,7 +94,7 @@ class PropertyDetailView(APIView):
 
 class SellerPropertyListView(generics.ListAPIView):
     permission_classes = [IsApprovedSeller]
-    serializer_class = PropertyListSerializer
+    serializer_class = SellerPropertyListSerializer
 
     def get_queryset(self):
         return Property.objects.filter(
@@ -120,3 +135,27 @@ class SellerPropertyToggleArchiveView(APIView):
             "is_active": prop.is_active,
             "status": prop.status,
         })
+class SellerPropertyDetailView(generics.RetrieveAPIView):
+    permission_classes = [IsApprovedSeller]
+    serializer_class = PropertyDetailSerializer
+
+    def get_queryset(self):
+        return Property.objects.filter(seller=self.request.user)
+
+# class SellerPropertyUpdateView(generics.UpdateAPIView):
+#     permission_classes = [IsApprovedSeller]
+#     serializer_class = PropertyUpdateSerializer
+
+#     def get_queryset(self):
+#         return Property.objects.filter(seller=self.request.user)
+class SellerPropertyUpdateView(generics.UpdateAPIView):
+    permission_classes = [IsApprovedSeller]
+    serializer_class = PropertyUpdateSerializer
+
+    def get_queryset(self):
+        return Property.objects.filter(seller=self.request.user)
+
+    def patch(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return super().patch(request, *args, **kwargs)
+

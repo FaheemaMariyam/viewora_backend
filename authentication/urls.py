@@ -11,6 +11,7 @@ from .views import (
     ResetPasswordRequestView,
     SendPhoneOTPView,
     VerifyPhoneOTPView,
+    RefreshTokenView
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path("admin/verify-otp/", AdminOTPVerifyView.as_view()),
     path("otp/send/", SendPhoneOTPView.as_view()),
     path("otp/verify/", VerifyPhoneOTPView.as_view()),
+    path("refresh/", RefreshTokenView.as_view()),
 ]

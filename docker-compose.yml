@@ -33,7 +33,9 @@ services:
     env_file:
       - .env
     volumes:
-      - .:/app
+    - .:/app
+    - media_data:/app/media
 
 volumes:
   postgres_data:
+  media_data:
