@@ -3,9 +3,9 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from authentication.models import Profile
+from chat.models import ChatMessage
 from interests.models import PropertyInterest
 from properties.models import Property
-from chat.models import ChatMessage
 
 User = get_user_model()
 
@@ -54,9 +54,7 @@ class ChatViewsTest(APITestCase):
     def test_chat_history_success(self):
         self.client.force_authenticate(user=self.client_user)
 
-        response = self.client.get(
-            f"/api/chat/interest/{self.interest.id}/history/"
-        )
+        response = self.client.get(f"/api/chat/interest/{self.interest.id}/history/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -67,9 +65,7 @@ class ChatViewsTest(APITestCase):
         Profile.objects.create(user=stranger, role="client")
 
         self.client.force_authenticate(user=stranger)
-        response = self.client.get(
-            f"/api/chat/interest/{self.interest.id}/history/"
-        )
+        response = self.client.get(f"/api/chat/interest/{self.interest.id}/history/")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -79,9 +75,7 @@ class ChatViewsTest(APITestCase):
     def test_mark_messages_read(self):
         self.client.force_authenticate(user=self.seller)
 
-        response = self.client.post(
-            f"/api/chat/interest/{self.interest.id}/read/"
-        )
+        response = self.client.post(f"/api/chat/interest/{self.interest.id}/read/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 

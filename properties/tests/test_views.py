@@ -120,9 +120,7 @@ class PropertyDetailViewTest(BasePropertyTestCase):
 
     def test_archived_property_returns_404(self):
         seller = self.create_seller()
-        prop = self.create_property(
-            seller, status="archived", is_active=False
-        )
+        prop = self.create_property(seller, status="archived", is_active=False)
 
         self.client.force_authenticate(user=seller)
         response = self.client.get(f"/api/properties/view/{prop.id}/")

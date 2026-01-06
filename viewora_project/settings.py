@@ -11,10 +11,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-from datetime import timedelta
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,7 +25,6 @@ load_dotenv(BASE_DIR / ".env")
 USE_REDIS = os.getenv("USE_REDIS") == "true"
 
 if USE_REDIS:
-    
 
     CHANNEL_LAYERS = {
         "default": {
@@ -73,7 +73,6 @@ INSTALLED_APPS = [
 ]
 
 
-
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Required for cookie handling
     "django.middleware.common.CommonMiddleware",
@@ -88,7 +87,6 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -99,7 +97,6 @@ CORS_ALLOW_HEADERS = [  # Allows JWT headers if needed,Allows JSON POST requests
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-   
 ]
 
 ROOT_URLCONF = "viewora_project.urls"
@@ -143,8 +140,6 @@ REST_FRAMEWORK = {
     ),
     "EXCEPTION_HANDLER": "authentication.exceptions.custom_exception_handler",
 }
-
-
 
 
 MEDIA_URL = "/media/"
@@ -213,9 +208,8 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID")
 
 
-
 SWAGGER_SETTINGS = {
-    "USE_SESSION_AUTH": False, 
+    "USE_SESSION_AUTH": False,
     "SECURITY_DEFINITIONS": {
         "cookieAuth": {
             "type": "apiKey",

@@ -1,11 +1,10 @@
+import re
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-import re
 
-from ..models import Profile,SellerDetails,BrokerDetails
-
-
+from ..models import BrokerDetails, Profile, SellerDetails
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -31,9 +30,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             "license_number",
             "certificate",
         ]
-        extra_kwargs = {
-            "password": {"write_only": True}
-        }
+        extra_kwargs = {"password": {"write_only": True}}
 
     #  Password validation
     def validate_password(self, value):
@@ -68,19 +65,19 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         if role == "seller":
             if not data.get("ownership_proof"):
-                raise serializers.ValidationError({
-                    "ownership_proof": "Ownership document is required for seller"
-                })
+                raise serializers.ValidationError(
+                    {"ownership_proof": "Ownership document is required for seller"}
+                )
 
         if role == "broker":
             if not data.get("license_number"):
-                raise serializers.ValidationError({
-                    "license_number": "License number is required for broker"
-                })
+                raise serializers.ValidationError(
+                    {"license_number": "License number is required for broker"}
+                )
             if not data.get("certificate"):
-                raise serializers.ValidationError({
-                    "certificate": "Certificate document is required for broker"
-                })
+                raise serializers.ValidationError(
+                    {"certificate": "Certificate document is required for broker"}
+                )
 
         return data
 
@@ -122,6 +119,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             )
 
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()

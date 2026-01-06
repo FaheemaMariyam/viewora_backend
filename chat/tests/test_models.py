@@ -1,10 +1,10 @@
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 from authentication.models import Profile
+from chat.models import ChatMessage
 from interests.models import PropertyInterest
 from properties.models import Property
-from chat.models import ChatMessage
 
 User = get_user_model()
 

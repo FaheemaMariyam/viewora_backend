@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .models import PropertyInterest
 
 
-class PropertyInterestCreateSerializer(serializers.ModelSerializer):  
+class PropertyInterestCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyInterest
         fields = ["property"]

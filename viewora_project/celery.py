@@ -1,11 +1,8 @@
-
 import os
-from celery import Celery  
 
-os.environ.setdefault(
-    "DJANGO_SETTINGS_MODULE",
-    "viewora_project.settings"
-)
+from celery import Celery
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "viewora_project.settings")
 
 app = Celery("viewora_project")
 

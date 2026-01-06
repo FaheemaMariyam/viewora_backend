@@ -70,7 +70,9 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from authentication.models import Profile
-#register(client)
+
+
+# register(client)
 class AuthAPITest(APITestCase):
 
     def test_register_client_success(self):
@@ -90,7 +92,8 @@ class AuthAPITest(APITestCase):
         self.assertEqual(response.data["role"], "client")
         self.assertTrue(response.data["is_admin_approved"])
         self.assertTrue(response.data["is_profile_complete"])
-#seller
+
+    # seller
     def test_register_seller_success(self):
         ownership_file = SimpleUploadedFile(
             "ownership.pdf", b"dummy content", content_type="application/pdf"
@@ -112,7 +115,8 @@ class AuthAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["role"], "seller")
         self.assertFalse(response.data["is_admin_approved"])
-    #register(broker)
+
+    # register(broker)
     def test_register_broker_success(self):
         certificate = SimpleUploadedFile(
             "license.pdf", b"dummy content", content_type="application/pdf"
@@ -135,7 +139,8 @@ class AuthAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["role"], "broker")
         self.assertFalse(response.data["is_admin_approved"])
-#login failure
+
+    # login failure
     def test_login_failure(self):
         response = self.client.post(
             "/api/auth/login/",
@@ -145,11 +150,9 @@ class AuthAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-#Login success – Client (profile required)
+    # Login success – Client (profile required)
     def test_login_success_client(self):
-        user = User.objects.create_user(
-            username="client", password="pass123"
-        )
+        user = User.objects.create_user(username="client", password="pass123")
 
         Profile.objects.create(
             user=user,
@@ -166,7 +169,8 @@ class AuthAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.cookies)
-#Profile requires authentication
+
+    # Profile requires authentication
     def test_profile_requires_auth(self):
         """
         GET /api/auth/profile/ without authentication

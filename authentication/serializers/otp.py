@@ -1,6 +1,6 @@
+import re
 
 from rest_framework import serializers
-import re
 
 
 class SendPhoneOTPSerializer(serializers.Serializer):
@@ -20,6 +20,8 @@ class SendPhoneOTPSerializer(serializers.Serializer):
         raise serializers.ValidationError(
             "Enter a valid Indian phone number with country code (+91)"
         )
+
+
 class VerifyPhoneOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     otp = serializers.CharField(max_length=6)

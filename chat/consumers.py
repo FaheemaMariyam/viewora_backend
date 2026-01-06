@@ -1,3 +1,5 @@
+#to handle the web socket connection
+#Client sends message → Django saves it in DB → Redis delivers it instantly to the other user.
 import json
 
 from asgiref.sync import sync_to_async
@@ -36,7 +38,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         event_type = data.get("type", "message")
 
-        # CHAT MESSAGE 
+        # CHAT MESSAGE
         if event_type == "message":
             message = data.get("message")
             if not message:
@@ -44,6 +46,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             msg = await self.save_message(message)
 
+            #Sends the message to Redis-Redis forwards it to all connected users
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {

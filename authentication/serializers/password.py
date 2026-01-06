@@ -1,4 +1,3 @@
-
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
@@ -10,6 +9,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
+
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -24,7 +24,7 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
         if not value.isdigit():
             raise serializers.ValidationError("OTP must be numeric")
         return value
-    
+
     def validate_new_password(self, value):
         validate_password(value)
         return value

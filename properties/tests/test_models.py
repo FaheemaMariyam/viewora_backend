@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 from properties.models import Property
 
@@ -9,10 +9,7 @@ User = get_user_model()
 class PropertyModelTest(TestCase):
 
     def setUp(self):
-        self.seller = User.objects.create_user(
-            username="seller",
-            password="pass123"
-        )
+        self.seller = User.objects.create_user(username="seller", password="pass123")
 
     def test_property_creation_defaults(self):
         prop = Property.objects.create(

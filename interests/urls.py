@@ -5,9 +5,9 @@ from .views import (
     BrokerAssignedInterestsView,
     BrokerAvailableInterestsView,
     BrokerCloseDealView,
+    BrokerStartInterestView,
     ClientInterestsView,
     CreateInterestView,
-    BrokerStartInterestView
 )
 
 urlpatterns = [

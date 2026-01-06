@@ -34,18 +34,21 @@
 #         serializer = LoginSerializer(data={"username": "test", "password": "pass"})
 #         self.assertTrue(serializer.is_valid())
 
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+
 #     def test_login_serializer_missing_password(self):
 #         serializer = LoginSerializer(data={"username": "test"})
 #         self.assertFalse(serializer.is_valid())
 from django.test import TestCase
-from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
 
 from authentication.serializers.auth import (
-    RegisterSerializer,
     LoginSerializer,
+    RegisterSerializer,
 )
-#register serializer
+
+
+# register serializer
 class RegisterSerializerTest(TestCase):
 
     def test_register_client_valid(self):
@@ -65,7 +68,8 @@ class RegisterSerializerTest(TestCase):
         self.assertEqual(user.profile.role, "client")
         self.assertEqual(user.profile.phone_number, "+919999999999")
         self.assertTrue(user.profile.is_admin_approved)
-        #seller signup test
+        # seller signup test
+
     def test_register_seller_valid(self):
         ownership_file = SimpleUploadedFile(
             "ownership.pdf", b"dummy content", content_type="application/pdf"
@@ -88,7 +92,8 @@ class RegisterSerializerTest(TestCase):
         self.assertEqual(user.profile.role, "seller")
         self.assertFalse(user.profile.is_admin_approved)
         self.assertEqual(user.profile.phone_number, "+918888888888")
-   #broker signup
+
+    # broker signup
     def test_register_broker_valid(self):
         certificate_file = SimpleUploadedFile(
             "license.pdf", b"dummy content", content_type="application/pdf"
@@ -112,7 +117,8 @@ class RegisterSerializerTest(TestCase):
         self.assertEqual(user.profile.role, "broker")
         self.assertFalse(user.profile.is_admin_approved)
         self.assertEqual(user.profile.phone_number, "+917777777777")
-   #invalid seller(missing documents)
+
+    # invalid seller(missing documents)
     def test_register_seller_missing_document(self):
         data = {
             "username": "seller2",
@@ -125,7 +131,8 @@ class RegisterSerializerTest(TestCase):
         serializer = RegisterSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertIn("ownership_proof", serializer.errors)
-   #invalid broker
+
+    # invalid broker
     def test_register_broker_missing_license(self):
         data = {
             "username": "broker2",
@@ -138,13 +145,13 @@ class RegisterSerializerTest(TestCase):
         serializer = RegisterSerializer(data=data)
         self.assertFalse(serializer.is_valid())
         self.assertIn("license_number", serializer.errors)
-#login serializer
+
+
+# login serializer
 class LoginSerializerTest(TestCase):
 
     def test_login_serializer_valid(self):
-        serializer = LoginSerializer(
-            data={"username": "test", "password": "pass"}
-        )
+        serializer = LoginSerializer(data={"username": "test", "password": "pass"})
         self.assertTrue(serializer.is_valid())
 
     def test_login_serializer_missing_password(self):

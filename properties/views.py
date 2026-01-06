@@ -1,27 +1,29 @@
 # properties/views.py
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, generics, status
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.permissions import IsApprovedSeller
 
-from .models import Property,PropertyImage
+from .models import Property, PropertyImage
 from .pagination import PropertyPagination
 from .serializers import (
     PropertyCreateSerializer,
     PropertyDetailSerializer,
     PropertyListSerializer,
+    PropertyUpdateSerializer,
     SellerPropertyListSerializer,
-    PropertyUpdateSerializer
 )
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.exceptions import AuthenticationFailed
-from drf_yasg.utils import swagger_auto_schema
+
 
 class PropertyCreateView(APIView):
     permission_classes = [IsApprovedSeller]
+
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="Create property",
@@ -34,14 +36,10 @@ class PropertyCreateView(APIView):
         },
     )
     def post(self, request):
-        serializer = PropertyCreateSerializer(
-            data=request.data
-        )
+        serializer = PropertyCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(seller=request.user)
         return Response(serializer.data, status=201)
-
-
 
 
 class PropertyListView(generics.ListAPIView):
@@ -56,7 +54,7 @@ class PropertyListView(generics.ListAPIView):
     ordering_fields = ["price", "created_at", "view_count", "interest_count"]
 
     ordering = ["-created_at"]
-    
+
     def get_queryset(self):
         qs = Property.objects.filter(status="published", is_active=True)
 
@@ -78,6 +76,7 @@ class PropertyListView(generics.ListAPIView):
             qs = qs.filter(price__lte=max_price)
 
         return qs
+
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="List properties",
@@ -88,8 +87,10 @@ class PropertyListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+
 class PropertyDetailView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="Get property details",
@@ -114,13 +115,12 @@ class PropertyDetailView(APIView):
 class SellerPropertyListView(generics.ListAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = SellerPropertyListSerializer
-    
+
     def get_queryset(self):
         return Property.objects.filter(
             seller=self.request.user,
-            
         ).order_by("-created_at")
-    
+
     @swagger_auto_schema(
         tags=["Seller Properties"],
         operation_summary="Seller properties",
@@ -130,8 +130,10 @@ class SellerPropertyListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
+
 class SellerPropertyToggleArchiveView(APIView):
     permission_classes = [IsApprovedSeller]
+
     @swagger_auto_schema(
         tags=["Seller Properties"],
         operation_summary="Toggle property archive",
@@ -142,24 +144,25 @@ class SellerPropertyToggleArchiveView(APIView):
         },
     )
     def patch(self, request, pk):
-        prop = get_object_or_404(
-            Property,
-            id=pk,
-            seller=request.user
-        )
+        prop = get_object_or_404(Property, id=pk, seller=request.user)
 
         prop.is_active = not prop.is_active
         prop.status = "published" if prop.is_active else "archived"
         prop.save(update_fields=["is_active", "status"])
 
-        return Response({
-            "id": prop.id,
-            "is_active": prop.is_active,
-            "status": prop.status,
-        })
+        return Response(
+            {
+                "id": prop.id,
+                "is_active": prop.is_active,
+                "status": prop.status,
+            }
+        )
+
+
 class SellerPropertyDetailView(generics.RetrieveAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = PropertyDetailSerializer
+
     @swagger_auto_schema(
         tags=["Seller Properties"],
         operation_summary="Seller property detail",
@@ -173,6 +176,7 @@ class SellerPropertyDetailView(generics.RetrieveAPIView):
 class SellerPropertyUpdateView(generics.UpdateAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = PropertyUpdateSerializer
+
     @swagger_auto_schema(
         tags=["Seller Properties"],
         operation_summary="Update property",
@@ -186,4 +190,3 @@ class SellerPropertyUpdateView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         kwargs["partial"] = True
         return super().patch(request, *args, **kwargs)
-

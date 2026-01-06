@@ -3,6 +3,7 @@ import logging
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,16 +13,17 @@ from properties.models import Property
 
 from .models import PropertyInterest
 from .serializers import (
-    PropertyInterestCreateSerializer,
+    
     PropertyInterestListSerializer,
 )
-from .services import assign_broker_to_interest
-from drf_yasg.utils import swagger_auto_schema
+# from .services import assign_broker_to_interest
+
 logger = logging.getLogger("viewora")
 
 
 class CreateInterestView(APIView):
     permission_classes = [IsClientUser]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Create interest",
@@ -69,6 +71,7 @@ class CreateInterestView(APIView):
 
 class BrokerAcceptInterestView(APIView):
     permission_classes = [IsApprovedBroker]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Accept interest",
@@ -98,6 +101,7 @@ class BrokerAcceptInterestView(APIView):
 
 class BrokerCloseDealView(APIView):
     permission_classes = [IsApprovedBroker]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Close deal",
@@ -147,6 +151,7 @@ class BrokerCloseDealView(APIView):
 
 class BrokerAssignedInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Broker assigned interests",
@@ -167,6 +172,7 @@ class BrokerAssignedInterestsView(APIView):
 
 class BrokerAvailableInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Available interests for brokers",
@@ -176,7 +182,7 @@ class BrokerAvailableInterestsView(APIView):
     def get(self, request):
         qs = PropertyInterest.objects.filter(status="requested").select_related(
             "property", "client"
-        )
+        ).order_by("-created_at")
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)
@@ -184,6 +190,7 @@ class BrokerAvailableInterestsView(APIView):
 
 class ClientInterestsView(APIView):
     permission_classes = [IsClientUser]
+
     @swagger_auto_schema(
         tags=["Interests"],
         operation_summary="Client interests",
@@ -200,6 +207,8 @@ class ClientInterestsView(APIView):
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)
+
+
 class BrokerStartInterestView(APIView):
     permission_classes = [IsApprovedBroker]
 

@@ -27,7 +27,7 @@ class ChatHistoryView(APIView):
                     "id": msg.id,
                     "sender": msg.sender.username,
                     "message": msg.message,
-                    "time": msg.created_at.isoformat(), 
+                    "time": msg.created_at.isoformat(),
                     "is_read": msg.is_read,
                 }
                 for msg in messages

@@ -1,5 +1,5 @@
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
 from properties.serializers import PropertyCreateSerializer
 
@@ -9,10 +9,7 @@ User = get_user_model()
 class PropertyCreateSerializerTest(TestCase):
 
     def setUp(self):
-        self.seller = User.objects.create_user(
-            username="seller",
-            password="pass123"
-        )
+        self.seller = User.objects.create_user(username="seller", password="pass123")
 
     def test_valid_property_creation(self):
         data = {

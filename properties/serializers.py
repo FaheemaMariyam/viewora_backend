@@ -2,22 +2,20 @@ from rest_framework import serializers
 
 from interests.models import PropertyInterest
 
-from .models import Property,PropertyImage
+from .models import Property, PropertyImage
 
 
 class PropertyCreateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(),
-        write_only=True,
-        required=False
+        child=serializers.ImageField(), write_only=True, required=False
     )
 
     class Meta:
         model = Property
         exclude = (
             "seller",
-            "status",         
-            "is_active",       
+            "status",
+            "is_active",
             "view_count",
             "interest_count",
             "created_at",
@@ -28,24 +26,19 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
         images = validated_data.pop("images", [])
 
         property_obj = Property.objects.create(
-            **validated_data,
-            status="published",   
-            is_active=True        
+            **validated_data, status="published", is_active=True
         )
 
         for img in images:
-            PropertyImage.objects.create(
-                property=property_obj,
-                image=img
-            )
+            PropertyImage.objects.create(property=property_obj, image=img)
 
         return property_obj
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
     seller = serializers.StringRelatedField()
-    is_interested = serializers.SerializerMethodField()  
-    cover_image=serializers.SerializerMethodField()
+    is_interested = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -64,7 +57,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "view_count",
             "interest_count",
             "created_at",
-            "is_interested", 
+            "is_interested",
             "is_active",
             "status",
             "cover_image",
@@ -79,6 +72,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
         return PropertyInterest.objects.filter(
             property=obj, client=request.user
         ).exists()
+
     def get_cover_image(self, obj):
         image = obj.images.first()
         if image:
@@ -146,9 +140,7 @@ class SellerPropertyListSerializer(serializers.ModelSerializer):
 
 class PropertyUpdateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
-        child=serializers.ImageField(),
-        write_only=True,
-        required=False
+        child=serializers.ImageField(), write_only=True, required=False
     )
 
     class Meta:
@@ -161,9 +153,6 @@ class PropertyUpdateSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
 
         for img in images:
-            PropertyImage.objects.create(
-                property=instance,
-                image=img
-            )
+            PropertyImage.objects.create(property=instance, image=img)
 
         return instance

@@ -6,12 +6,12 @@ from .views import (
     LoginView,
     LogoutView,
     ProfileView,
+    RefreshTokenView,
     RegisterView,
     ResetPasswordConfirmView,
     ResetPasswordRequestView,
     SendPhoneOTPView,
     VerifyPhoneOTPView,
-    RefreshTokenView
 )
 
 urlpatterns = [

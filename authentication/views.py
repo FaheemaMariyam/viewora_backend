@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from twilio.rest import Client
 
-from .models import AdminLoginOTP, PasswordResetOTP,  Profile
+from .models import AdminLoginOTP, PasswordResetOTP, Profile
 from .serializers.auth import (
     AdminOTPVerifySerializer,
     LoginSerializer,
@@ -32,6 +32,7 @@ from .serializers.profile import ProfileSerializer
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(request_body=RegisterSerializer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -90,12 +91,11 @@ class LoginView(APIView):
                 status=status.HTTP_200_OK,
             )
         # load profile for non admin users
-       
+
         try:
             profile = user.profile
         except Profile.DoesNotExist:
             raise ValidationError("User profile not found")
-
 
         # SELLER & BROKER GATES
         if profile.role in ["seller", "broker"]:
@@ -113,8 +113,7 @@ class LoginView(APIView):
             key="access",
             value=str(refresh.access_token),
             httponly=True,
-            
-            samesite="Lax",  #none in production
+            samesite="Lax",  # none in production
             secure=False,
         )
         # refresh token
@@ -131,22 +130,18 @@ class LoginView(APIView):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class=ProfileSerializer
+    serializer_class = ProfileSerializer
+
     @swagger_auto_schema(
         tags=["Profile"],
         operation_summary="Get current user profile",
         security=[{"cookieAuth": []}],
-        responses={
-            200: ProfileSerializer,
-            403: "Forbidden"
-        }
+        responses={200: ProfileSerializer, 403: "Forbidden"},
     )
     def get(self, request):
         user = request.user
         profile = user.profile
-        
 
-       
         if profile.role in ["seller", "broker"]:
             if not profile.is_profile_complete:
                 return Response({"error": "Profile incomplete"}, status=403)
@@ -170,10 +165,7 @@ class LogoutView(APIView):
         tags=["Authentication"],
         operation_summary="Logout",
         security=[{"cookieAuth": []}],
-        responses={
-            200: "Logged out successfully",
-            401: "Unauthorized"
-        }
+        responses={200: "Logged out successfully", 401: "Unauthorized"},
     )
     def post(self, request):
         response = Response({"message": "Logged out successfully"})
@@ -184,6 +176,7 @@ class LogoutView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(request_body=ChangePasswordSerializer)
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
@@ -211,6 +204,7 @@ class ChangePasswordView(APIView):
 class ResetPasswordRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordRequestSerializer
+
     @swagger_auto_schema(request_body=ResetPasswordRequestSerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -241,8 +235,9 @@ class ResetPasswordRequestView(APIView):
 
 
 class ResetPasswordConfirmView(APIView):
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
     serializer_class = ResetPasswordConfirmSerializer
+
     @swagger_auto_schema(request_body=ResetPasswordConfirmSerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -279,6 +274,7 @@ class ResetPasswordConfirmView(APIView):
 class AdminOTPVerifyView(APIView):
     serializer_class = AdminOTPVerifySerializer
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(request_body=AdminOTPVerifySerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -299,7 +295,7 @@ class AdminOTPVerifyView(APIView):
         otp_obj.delete()
 
         response = Response({"role": "admin"})
-       
+
         response.set_cookie(
             "access",
             str(refresh.access_token),
@@ -324,6 +320,7 @@ client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
 # This endpoint Is public (AllowAny), Is called from frontend , Does not use session authentication , Uses OTP (not cookies)
 class SendPhoneOTPView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(request_body=SendPhoneOTPSerializer)
     def post(self, request):
         # Validate request data using serializer (Swagger-friendly)
@@ -342,7 +339,7 @@ class SendPhoneOTPView(APIView):
             )  # Confirms OTP was sent successfully.
 
         except Exception as e:
-           
+
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -351,6 +348,7 @@ class SendPhoneOTPView(APIView):
 @method_decorator(csrf_exempt, name="dispatch")
 class VerifyPhoneOTPView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(request_body=VerifyPhoneOTPSerializer)
     def post(self, request):
         # Validate request data using serializer (Swagger-friendly)
@@ -378,15 +376,15 @@ class VerifyPhoneOTPView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
+
     @swagger_auto_schema(
         tags=["Authentication"],
         operation_summary="Refresh access token",
-        responses={
-            200: "New access token issued",
-            401: "Invalid refresh token"
-        }
+        responses={200: "New access token issued", 401: "Invalid refresh token"},
     )
     def post(self, request):
         refresh_token = request.COOKIES.get("refresh")
