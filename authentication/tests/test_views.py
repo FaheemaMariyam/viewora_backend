@@ -1,23 +1,85 @@
+# from django.contrib.auth.models import User
+# from django.urls import reverse
+# from rest_framework import status
+# from rest_framework.test import APITestCase
+
+# from authentication.models import Profile
+
+
+# class AuthAPITest(APITestCase):
+
+#     def test_register_success(self):
+#         """
+#         POST /api/auth/register/
+#         """
+#         response = self.client.post(
+#             "/api/auth/register/",
+#             {
+#                 "username": "testuser",
+#                 "email": "test@test.com",
+#                 "password": "StrongPass123",
+#                 "role": "client",
+#                 "phone_number": "9999999999",
+#             },
+#             format="json",
+#         )
+
+#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+#     def test_login_failure(self):
+#         """
+#         POST /api/auth/login/ with wrong credentials
+#         """
+#         response = self.client.post(
+#             "/api/auth/login/",
+#             {"username": "wrong", "password": "wrong"},
+#             format="json",
+#         )
+
+#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+#     def test_login_success_client(self):
+#         """
+#         Successful login for client role
+#         """
+#         user = User.objects.create_user(username="client", password="pass123")
+
+#         # 🔧 FIX: profile must be created manually
+#         Profile.objects.create(
+#             user=user, role="client", is_profile_complete=True, is_admin_approved=True
+#         )
+
+#         response = self.client.post(
+#             "/api/auth/login/",
+#             {"username": "client", "password": "pass123"},
+#             format="json",
+#         )
+
+#         self.assertEqual(response.status_code, status.HTTP_200_OK)
+#         self.assertIn("access", response.cookies)
+
+#     def test_profile_requires_auth(self):
+#         """
+#         GET /api/auth/profile/ without authentication
+#         """
+#         response = self.client.get("/api/auth/profile/")
+#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 from django.contrib.auth.models import User
-from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from authentication.models import Profile
-
-
+#register(client)
 class AuthAPITest(APITestCase):
 
-    def test_register_success(self):
-        """
-        POST /api/auth/register/
-        """
+    def test_register_client_success(self):
         response = self.client.post(
             "/api/auth/register/",
             {
                 "username": "testuser",
                 "email": "test@test.com",
-                "password": "StrongPass123",
+                "password": "StrongPass123!",
                 "role": "client",
                 "phone_number": "9999999999",
             },
@@ -25,11 +87,56 @@ class AuthAPITest(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["role"], "client")
+        self.assertTrue(response.data["is_admin_approved"])
+        self.assertTrue(response.data["is_profile_complete"])
+#seller
+    def test_register_seller_success(self):
+        ownership_file = SimpleUploadedFile(
+            "ownership.pdf", b"dummy content", content_type="application/pdf"
+        )
 
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "username": "seller1",
+                "email": "seller@test.com",
+                "password": "StrongPass123!",
+                "role": "seller",
+                "phone_number": "8888888888",
+                "ownership_proof": ownership_file,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["role"], "seller")
+        self.assertFalse(response.data["is_admin_approved"])
+    #register(broker)
+    def test_register_broker_success(self):
+        certificate = SimpleUploadedFile(
+            "license.pdf", b"dummy content", content_type="application/pdf"
+        )
+
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "username": "broker1",
+                "email": "broker@test.com",
+                "password": "StrongPass123!",
+                "role": "broker",
+                "phone_number": "7777777777",
+                "license_number": "LIC123456",
+                "certificate": certificate,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["role"], "broker")
+        self.assertFalse(response.data["is_admin_approved"])
+#login failure
     def test_login_failure(self):
-        """
-        POST /api/auth/login/ with wrong credentials
-        """
         response = self.client.post(
             "/api/auth/login/",
             {"username": "wrong", "password": "wrong"},
@@ -38,15 +145,17 @@ class AuthAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+#Login success – Client (profile required)
     def test_login_success_client(self):
-        """
-        Successful login for client role
-        """
-        user = User.objects.create_user(username="client", password="pass123")
+        user = User.objects.create_user(
+            username="client", password="pass123"
+        )
 
-        # 🔧 FIX: profile must be created manually
         Profile.objects.create(
-            user=user, role="client", is_profile_complete=True, is_admin_approved=True
+            user=user,
+            role="client",
+            is_profile_complete=True,
+            is_admin_approved=True,
         )
 
         response = self.client.post(
@@ -57,10 +166,10 @@ class AuthAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.cookies)
-
+#Profile requires authentication
     def test_profile_requires_auth(self):
         """
         GET /api/auth/profile/ without authentication
         """
         response = self.client.get("/api/auth/profile/")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -18,18 +18,21 @@ from .serializers import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
+from drf_yasg.utils import swagger_auto_schema
 
-# class PropertyCreateView(APIView):
-#     permission_classes = [IsApprovedSeller]
-
-#     def post(self, request):
-#         serializer = PropertyCreateSerializer(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save(seller=request.user)
-#         return Response(serializer.data, status=status.HTTP_201_CREATED)
 class PropertyCreateView(APIView):
     permission_classes = [IsApprovedSeller]
-
+    @swagger_auto_schema(
+        tags=["Properties"],
+        operation_summary="Create property",
+        operation_description="Seller creates a new property with optional images",
+        security=[{"cookieAuth": []}],
+        request_body=PropertyCreateSerializer,
+        responses={
+            201: PropertyDetailSerializer,
+            400: "Validation error",
+        },
+    )
     def post(self, request):
         serializer = PropertyCreateSerializer(
             data=request.data
@@ -53,7 +56,7 @@ class PropertyListView(generics.ListAPIView):
     ordering_fields = ["price", "created_at", "view_count", "interest_count"]
 
     ordering = ["-created_at"]
-
+    
     def get_queryset(self):
         qs = Property.objects.filter(status="published", is_active=True)
 
@@ -75,11 +78,27 @@ class PropertyListView(generics.ListAPIView):
             qs = qs.filter(price__lte=max_price)
 
         return qs
-
+    @swagger_auto_schema(
+        tags=["Properties"],
+        operation_summary="List properties",
+        operation_description="List published properties with filters and pagination",
+        security=[{"cookieAuth": []}],
+        responses={200: PropertyListSerializer(many=True)},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 class PropertyDetailView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        tags=["Properties"],
+        operation_summary="Get property details",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: PropertyDetailSerializer,
+            404: "Property not found",
+        },
+    )
     def get(self, request, pk):
         property_obj = get_object_or_404(
             Property, id=pk, status="published", is_active=True
@@ -95,30 +114,33 @@ class PropertyDetailView(APIView):
 class SellerPropertyListView(generics.ListAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = SellerPropertyListSerializer
-
+    
     def get_queryset(self):
         return Property.objects.filter(
             seller=self.request.user,
             
         ).order_by("-created_at")
+    
+    @swagger_auto_schema(
+        tags=["Seller Properties"],
+        operation_summary="Seller properties",
+        security=[{"cookieAuth": []}],
+        responses={200: SellerPropertyListSerializer(many=True)},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
-# class SellerPropertyArchiveView(APIView):
-#     permission_classes = [IsApprovedSeller]
-
-#     def patch(self, request, pk):
-#         prop = get_object_or_404(
-#             Property,
-#             id=pk,
-#             seller=request.user
-#         )
-#         prop.is_active = False
-#         prop.status = "archived"
-#         prop.save()
-
-#         return Response({"message": "Property archived"})
 class SellerPropertyToggleArchiveView(APIView):
     permission_classes = [IsApprovedSeller]
-
+    @swagger_auto_schema(
+        tags=["Seller Properties"],
+        operation_summary="Toggle property archive",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: "Property archived/unarchived",
+            404: "Property not found",
+        },
+    )
     def patch(self, request, pk):
         prop = get_object_or_404(
             Property,
@@ -138,20 +160,26 @@ class SellerPropertyToggleArchiveView(APIView):
 class SellerPropertyDetailView(generics.RetrieveAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = PropertyDetailSerializer
-
+    @swagger_auto_schema(
+        tags=["Seller Properties"],
+        operation_summary="Seller property detail",
+        security=[{"cookieAuth": []}],
+        responses={200: PropertyDetailSerializer},
+    )
     def get_queryset(self):
         return Property.objects.filter(seller=self.request.user)
 
-# class SellerPropertyUpdateView(generics.UpdateAPIView):
-#     permission_classes = [IsApprovedSeller]
-#     serializer_class = PropertyUpdateSerializer
 
-#     def get_queryset(self):
-#         return Property.objects.filter(seller=self.request.user)
 class SellerPropertyUpdateView(generics.UpdateAPIView):
     permission_classes = [IsApprovedSeller]
     serializer_class = PropertyUpdateSerializer
-
+    @swagger_auto_schema(
+        tags=["Seller Properties"],
+        operation_summary="Update property",
+        security=[{"cookieAuth": []}],
+        request_body=PropertyUpdateSerializer,
+        responses={200: PropertyDetailSerializer},
+    )
     def get_queryset(self):
         return Property.objects.filter(seller=self.request.user)
 

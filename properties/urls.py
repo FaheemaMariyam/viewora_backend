@@ -7,7 +7,7 @@ urlpatterns = [
     path("view/", PropertyListView.as_view()),
     path("view/<int:pk>/", PropertyDetailView.as_view()),
     path("seller/my-properties/", SellerPropertyListView.as_view()),
-    # path("seller/property/<int:pk>/archive/",SellerPropertyArchiveView.as_view()),
+    
     path(
   "seller/property/<int:pk>/toggle-archive/",
   SellerPropertyToggleArchiveView.as_view()

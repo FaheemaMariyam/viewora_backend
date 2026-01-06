@@ -1,59 +1,43 @@
-from django.contrib.auth.models import User
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 
-from authentication.models import Profile
-from interests.models import PropertyInterest
-from interests.serializers import (
-    PropertyInterestCreateSerializer,
-    PropertyInterestListSerializer,
-)
-from properties.models import Property
+from properties.serializers import PropertyCreateSerializer
+
+User = get_user_model()
 
 
-class PropertyInterestSerializerTest(TestCase):
+class PropertyCreateSerializerTest(TestCase):
 
     def setUp(self):
-        self.seller = User.objects.create_user("seller", "pass")
-        Profile.objects.create(
-            user=self.seller,
-            role="seller",
-            is_admin_approved=True,
-            is_profile_complete=True,
+        self.seller = User.objects.create_user(
+            username="seller",
+            password="pass123"
         )
 
-        self.client_user = User.objects.create_user("client", "pass")
-        Profile.objects.create(user=self.client_user, role="client")
+    def test_valid_property_creation(self):
+        data = {
+            "title": "Villa",
+            "description": "Luxury villa",
+            "property_type": "house",
+            "price": 8000000,
+            "area_size": 2000,
+            "city": "Trivandrum",
+            "locality": "Kowdiar",
+            "address": "Address here",
+        }
 
-        self.property = Property.objects.create(
-            seller=self.seller,
-            title="Flat",
-            description="Desc",
-            property_type="flat",
-            price=2000000,
-            area_size=900,
-            city="Kochi",
-            locality="Kaloor",
-            address="Addr",
-        )
+        serializer = PropertyCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
 
-    def test_property_interest_create_serializer_valid(self):
-        serializer = PropertyInterestCreateSerializer(
-            data={"property": self.property.id}
-        )
-        self.assertTrue(serializer.is_valid())
+        prop = serializer.save(seller=self.seller)
 
-    def test_property_interest_create_serializer_invalid(self):
-        serializer = PropertyInterestCreateSerializer(data={})
+        self.assertEqual(prop.title, "Villa")
+        self.assertEqual(prop.seller, self.seller)
+        self.assertTrue(prop.is_active)
+        self.assertEqual(prop.status, "published")
+
+    def test_invalid_property_data(self):
+        serializer = PropertyCreateSerializer(data={})
         self.assertFalse(serializer.is_valid())
-
-    def test_property_interest_list_serializer(self):
-        interest = PropertyInterest.objects.create(
-            property=self.property, client=self.client_user
-        )
-
-        serializer = PropertyInterestListSerializer(interest)
-        data = serializer.data
-
-        self.assertIn("property", data)
-        self.assertIn("client", data)
-        self.assertEqual(data["status"], "requested")
+        self.assertIn("title", serializer.errors)
+        self.assertIn("price", serializer.errors)

@@ -16,8 +16,8 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
         model = Property
         exclude = (
             "seller",
-            "status",          # 🚫 REMOVE
-            "is_active",       # 🚫 REMOVE
+            "status",         
+            "is_active",       
             "view_count",
             "interest_count",
             "created_at",
@@ -29,8 +29,8 @@ class PropertyCreateSerializer(serializers.ModelSerializer):
 
         property_obj = Property.objects.create(
             **validated_data,
-            status="published",   # ✅ FORCE
-            is_active=True        # ✅ FORCE
+            status="published",   
+            is_active=True        
         )
 
         for img in images:
@@ -86,10 +86,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(image.image.url)
         return None
 
-# class PropertyImageSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = PropertyImage
-#         fields = ["id", "image"]
+
 class PropertyImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
@@ -120,26 +117,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
         interest = obj.interests.filter(client=user).first()
         return interest.id if interest else None
 
-# class SellerPropertyListSerializer(serializers.ModelSerializer):
-#     cover_image = serializers.SerializerMethodField()
 
-#     class Meta:
-#         model = Property
-#         fields = [
-#             "id",
-#             "title",
-#             "price",
-#             "city",
-#             "locality",
-#             "status",
-#             "is_active",
-#             "cover_image",
-#             "created_at",
-#         ]
-
-#     def get_cover_image(self, obj):
-#         image = obj.images.first()
-#         return image.image.url if image else None
 class SellerPropertyListSerializer(serializers.ModelSerializer):
     cover_image = serializers.SerializerMethodField()
 
@@ -165,10 +143,7 @@ class SellerPropertyListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return request.build_absolute_uri(image.image.url)
 
-# class PropertyUpdateSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Property
-#         exclude = ["seller", "created_at", "updated_at"]
+
 class PropertyUpdateSerializer(serializers.ModelSerializer):
     images = serializers.ListField(
         child=serializers.ImageField(),

@@ -24,9 +24,7 @@ load_dotenv(BASE_DIR / ".env")
 USE_REDIS = os.getenv("USE_REDIS") == "true"
 
 if USE_REDIS:
-    # print("USE_REDIS =", os.getenv("USE_REDIS"))
-    # print("REDIS_HOST =", os.getenv("REDIS_HOST"))
-    # print("REDIS_PORT =", os.getenv("REDIS_PORT"))
+    
 
     CHANNEL_LAYERS = {
         "default": {
@@ -42,12 +40,12 @@ if USE_REDIS:
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-9%+gue#_gg@7q%34e)d$t+8lvp-!c&bh7ts1=9uf&9gomtpb=i"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG") == "true"
 
-# ALLOWED_HOSTS = []
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
@@ -73,14 +71,7 @@ INSTALLED_APPS = [
     "chat",
     "django_celery_beat",
 ]
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("127.0.0.1", 6379)],
-#         },
-#     },
-# }
+
 
 
 MIDDLEWARE = [
@@ -97,7 +88,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    # "http://127.0.0.1:5173",
+    
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -108,7 +99,7 @@ CORS_ALLOW_HEADERS = [  # Allows JWT headers if needed,Allows JSON POST requests
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    # "http://127.0.0.1:5173",
+   
 ]
 
 ROOT_URLCONF = "viewora_project.urls"
@@ -154,12 +145,7 @@ REST_FRAMEWORK = {
 }
 
 
-# SPECTACULAR_SETTINGS = {
-#     'TITLE': 'Viewora API',
-#     'DESCRIPTION': 'AI-powered Virtual Real Estate Platform APIs',
-#     'VERSION': '1.0.0',
-#     'SERVE_INCLUDE_SCHEMA': False,
-# }
+
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -221,16 +207,15 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")
+
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID")
 
-# print("DEBUG TWILIO_ACCOUNT_SID =", TWILIO_ACCOUNT_SID)
-# print("DEBUG TWILIO_VERIFY_SID =", TWILIO_VERIFY_SID)
+
 
 SWAGGER_SETTINGS = {
-    "USE_SESSION_AUTH": False,  # important
+    "USE_SESSION_AUTH": False, 
     "SECURITY_DEFINITIONS": {
         "cookieAuth": {
             "type": "apiKey",
@@ -263,8 +248,8 @@ LOGGING = {
         },
     },
 }
-# CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_BROKER_URL = "redis://redis:6379/0"
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"

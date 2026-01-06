@@ -16,13 +16,23 @@ from .serializers import (
     PropertyInterestListSerializer,
 )
 from .services import assign_broker_to_interest
-
+from drf_yasg.utils import swagger_auto_schema
 logger = logging.getLogger("viewora")
 
 
 class CreateInterestView(APIView):
     permission_classes = [IsClientUser]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Create interest",
+        operation_description="Client expresses interest in a property",
+        security=[{"cookieAuth": []}],
+        responses={
+            201: "Interest created",
+            400: "Already expressed interest / Own property",
+            404: "Property not found",
+        },
+    )
     def post(self, request, property_id):
 
         property_obj = get_object_or_404(
@@ -59,7 +69,16 @@ class CreateInterestView(APIView):
 
 class BrokerAcceptInterestView(APIView):
     permission_classes = [IsApprovedBroker]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Accept interest",
+        operation_description="Broker accepts an available interest (first broker wins)",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: "Interest accepted",
+            404: "Interest not found",
+        },
+    )
     def post(self, request, interest_id):
         with transaction.atomic():
 
@@ -79,7 +98,17 @@ class BrokerAcceptInterestView(APIView):
 
 class BrokerCloseDealView(APIView):
     permission_classes = [IsApprovedBroker]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Close deal",
+        operation_description="Marks interest as closed and property as sold",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: "Deal closed successfully",
+            400: "Property already sold",
+            404: "Interest not found",
+        },
+    )
     def post(self, request, interest_id):
 
         with transaction.atomic():
@@ -118,7 +147,12 @@ class BrokerCloseDealView(APIView):
 
 class BrokerAssignedInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Broker assigned interests",
+        security=[{"cookieAuth": []}],
+        responses={200: PropertyInterestListSerializer(many=True)},
+    )
     def get(self, request):
         qs = PropertyInterest.objects.filter(broker=request.user).annotate(
             unread_count=Count(
@@ -133,7 +167,12 @@ class BrokerAssignedInterestsView(APIView):
 
 class BrokerAvailableInterestsView(APIView):
     permission_classes = [IsApprovedBroker]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Available interests for brokers",
+        security=[{"cookieAuth": []}],
+        responses={200: PropertyInterestListSerializer(many=True)},
+    )
     def get(self, request):
         qs = PropertyInterest.objects.filter(status="requested").select_related(
             "property", "client"
@@ -145,7 +184,12 @@ class BrokerAvailableInterestsView(APIView):
 
 class ClientInterestsView(APIView):
     permission_classes = [IsClientUser]
-
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Client interests",
+        security=[{"cookieAuth": []}],
+        responses={200: PropertyInterestListSerializer(many=True)},
+    )
     def get(self, request):
         qs = PropertyInterest.objects.filter(client=request.user).annotate(
             unread_count=Count(
@@ -156,3 +200,28 @@ class ClientInterestsView(APIView):
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)
+class BrokerStartInterestView(APIView):
+    permission_classes = [IsApprovedBroker]
+
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Start interest",
+        operation_description="Move interest from assigned to in_progress when chat starts",
+        security=[{"cookieAuth": []}],
+        responses={200: "Interest moved to in_progress"},
+    )
+    def post(self, request, interest_id):
+        interest = get_object_or_404(
+            PropertyInterest,
+            id=interest_id,
+            broker=request.user,
+        )
+
+        if interest.status == "assigned":
+            interest.status = "in_progress"
+            interest.save(update_fields=["status"])
+
+        return Response(
+            {"status": interest.status},
+            status=status.HTTP_200_OK,
+        )

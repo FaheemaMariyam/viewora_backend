@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from twilio.rest import Client
 
-from .models import AdminLoginOTP, PasswordResetOTP, PhoneOTP, Profile
+from .models import AdminLoginOTP, PasswordResetOTP,  Profile
 from .serializers.auth import (
     AdminOTPVerifySerializer,
     LoginSerializer,
@@ -32,7 +32,7 @@ from .serializers.profile import ProfileSerializer
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
-
+    @swagger_auto_schema(request_body=RegisterSerializer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
@@ -69,6 +69,8 @@ class LoginView(APIView):
 
         if not user:
             raise AuthenticationFailed("Invalid credentials")
+        if not user.is_active:
+            raise AuthenticationFailed("Account is disabled")
 
         if user.is_superuser:
             # Old OTPs are deleted, New 6-digit OTP is generated, OTP is emailed,  Login is paused
@@ -88,8 +90,11 @@ class LoginView(APIView):
                 status=status.HTTP_200_OK,
             )
         # load profile for non admin users
-        # profile = user.profile
-        profile = Profile.objects.get(user=user)
+       
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            raise ValidationError("User profile not found")
 
 
         # SELLER & BROKER GATES
@@ -108,8 +113,8 @@ class LoginView(APIView):
             key="access",
             value=str(refresh.access_token),
             httponly=True,
-            # samesite="Lax"  #none in production
-            samesite="Lax",  # 🔥 CHANGE
+            
+            samesite="Lax",  #none in production
             secure=False,
         )
         # refresh token
@@ -118,7 +123,7 @@ class LoginView(APIView):
             value=str(refresh),
             httponly=True,
             # samesite="Lax"
-            samesite="Lax",  # 🔥 CHANGE
+            samesite="Lax",  # CHANGE
             secure=False,
         )
         return response
@@ -126,13 +131,28 @@ class LoginView(APIView):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-
+    serializer_class=ProfileSerializer
+    @swagger_auto_schema(
+        tags=["Profile"],
+        operation_summary="Get current user profile",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: ProfileSerializer,
+            403: "Forbidden"
+        }
+    )
     def get(self, request):
         user = request.user
         profile = user.profile
+        
 
-        if profile.role in ["seller", "broker"] and not profile.is_admin_approved:
-            return Response({"error": "Admin approval pending"}, status=403)
+       
+        if profile.role in ["seller", "broker"]:
+            if not profile.is_profile_complete:
+                return Response({"error": "Profile incomplete"}, status=403)
+
+            if not profile.is_admin_approved:
+                return Response({"error": "Admin approval pending"}, status=403)
 
         return Response(
             {
@@ -146,6 +166,15 @@ class ProfileView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        tags=["Authentication"],
+        operation_summary="Logout",
+        security=[{"cookieAuth": []}],
+        responses={
+            200: "Logged out successfully",
+            401: "Unauthorized"
+        }
+    )
     def post(self, request):
         response = Response({"message": "Logged out successfully"})
         response.delete_cookie("access")
@@ -155,7 +184,7 @@ class LogoutView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(request_body=ChangePasswordSerializer)
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -165,6 +194,9 @@ class ChangePasswordView(APIView):
         #  Verify old password
         if not user.check_password(old_password):
             raise ValidationError("Old password is incorrect")
+        if old_password == new_password:
+            raise ValidationError("New password must be different from old password")
+
         user.set_password(new_password)
         user.save()
 
@@ -179,18 +211,18 @@ class ChangePasswordView(APIView):
 class ResetPasswordRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordRequestSerializer
-
+    @swagger_auto_schema(request_body=ResetPasswordRequestSerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"]
 
-        #  SAFE: does not crash if duplicates exist
+        #   does not crash if duplicates exist
         user = User.objects.filter(email=email).first()
 
         if not user:
-            raise ValidationError("User with this email does not exist")
+            return Response({"message": "If account exists, OTP sent"}, status=200)
 
         # delete old OTPs
         PasswordResetOTP.objects.filter(user=user).delete()
@@ -209,9 +241,9 @@ class ResetPasswordRequestView(APIView):
 
 
 class ResetPasswordConfirmView(APIView):
-    permission_classes = [AllowAny]  # 🔥 REQUIRED
+    permission_classes = [AllowAny] 
     serializer_class = ResetPasswordConfirmSerializer
-
+    @swagger_auto_schema(request_body=ResetPasswordConfirmSerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -233,7 +265,7 @@ class ResetPasswordConfirmView(APIView):
             otp_obj.delete()
             raise ValidationError("OTP expired")
 
-        # ✅ Reset password
+        # Reset password
         user.set_password(new_password)
         user.save()
 
@@ -247,7 +279,7 @@ class ResetPasswordConfirmView(APIView):
 class AdminOTPVerifyView(APIView):
     serializer_class = AdminOTPVerifySerializer
     permission_classes = [AllowAny]
-
+    @swagger_auto_schema(request_body=AdminOTPVerifySerializer)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -262,13 +294,12 @@ class AdminOTPVerifyView(APIView):
         if otp_obj.is_expired():
             otp_obj.delete()
             raise ValidationError("OTP expired")
-        # OTP valid → issue JWT
+        # OTP valid - issue JWT
         refresh = RefreshToken.for_user(user)
         otp_obj.delete()
 
         response = Response({"role": "admin"})
-        # response.set_cookie("access", str(refresh.access_token), httponly=True)
-        # response.set_cookie("refresh", str(refresh), httponly=True)
+       
         response.set_cookie(
             "access",
             str(refresh.access_token),
@@ -293,7 +324,7 @@ client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
 # This endpoint Is public (AllowAny), Is called from frontend , Does not use session authentication , Uses OTP (not cookies)
 class SendPhoneOTPView(APIView):
     permission_classes = [AllowAny]
-
+    @swagger_auto_schema(request_body=SendPhoneOTPSerializer)
     def post(self, request):
         # Validate request data using serializer (Swagger-friendly)
         serializer = SendPhoneOTPSerializer(data=request.data)
@@ -311,6 +342,7 @@ class SendPhoneOTPView(APIView):
             )  # Confirms OTP was sent successfully.
 
         except Exception as e:
+           
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -319,7 +351,7 @@ class SendPhoneOTPView(APIView):
 @method_decorator(csrf_exempt, name="dispatch")
 class VerifyPhoneOTPView(APIView):
     permission_classes = [AllowAny]
-
+    @swagger_auto_schema(request_body=VerifyPhoneOTPSerializer)
     def post(self, request):
         # Validate request data using serializer (Swagger-friendly)
         serializer = VerifyPhoneOTPSerializer(data=request.data)
@@ -348,7 +380,14 @@ class VerifyPhoneOTPView(APIView):
             )
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
-
+    @swagger_auto_schema(
+        tags=["Authentication"],
+        operation_summary="Refresh access token",
+        responses={
+            200: "New access token issued",
+            401: "Invalid refresh token"
+        }
+    )
     def post(self, request):
         refresh_token = request.COOKIES.get("refresh")
 
@@ -357,6 +396,9 @@ class RefreshTokenView(APIView):
 
         try:
             refresh = RefreshToken(refresh_token)
+            if refresh["user_id"] is None:
+                raise AuthenticationFailed("Invalid refresh token")
+
             access_token = str(refresh.access_token)
 
             response = Response({"message": "Token refreshed"})

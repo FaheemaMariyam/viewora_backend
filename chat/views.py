@@ -27,7 +27,7 @@ class ChatHistoryView(APIView):
                     "id": msg.id,
                     "sender": msg.sender.username,
                     "message": msg.message,
-                    "time": msg.created_at.isoformat(),  #  FIXED
+                    "time": msg.created_at.isoformat(), 
                     "is_read": msg.is_read,
                 }
                 for msg in messages
@@ -52,7 +52,7 @@ class MarkMessagesReadView(APIView):
 
         unread_messages.update(is_read=True)
 
-        #  REAL-TIME PUSH (ONLY IF NEEDED)
+        #  REALTIME PUSH (ONLY IF NEEDED)
         if message_ids:
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
