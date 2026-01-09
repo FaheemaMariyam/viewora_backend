@@ -11,9 +11,16 @@ viewora_env/
 db.sqlite3
 media/
 
+# # Firebase Admin SDK (CRITICAL)
+# firebase_service_account.json
+# viewora-project-firebase-adminsdk-*.json
+
 # Firebase Admin SDK (CRITICAL)
-firebase_service_account.json
-viewora-project-firebase-adminsdk-*.json
+firebase_service_account*.json
+*firebase-adminsdk*.json
+firebase/**/*.json
+
+
 
 # VS Code
 .vscode/
@@ -21,4 +28,4 @@ viewora-project-firebase-adminsdk-*.json
 # OS
 .DS_Store
 
-firebase/viewora-notification-firebase-adminsdk-fbsvc-c369f555cf.json
+# firebase/viewora-notification-firebase-adminsdk-fbsvc-c369f555cf.json
