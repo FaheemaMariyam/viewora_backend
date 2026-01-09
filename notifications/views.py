@@ -4,17 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Notification
 
-# class StoreNotificationView(APIView):
-#     permission_classes = [IsAuthenticated]
 
-#     def post(self, request):
-#         Notification.objects.create(
-#             user=request.user,
-#             title=request.data.get("title", ""),
-#             body=request.data.get("body", ""),
-#             data=request.data.get("data", {}),
-#         )
-#         return Response({"status": "saved"})
 class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
 

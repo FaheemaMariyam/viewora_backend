@@ -14,12 +14,12 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / ".env")
+# load_dotenv(BASE_DIR / ".env")
 
 
 USE_REDIS = os.getenv("USE_REDIS") == "true"
@@ -71,6 +71,8 @@ INSTALLED_APPS = [
     "chat",
     "django_celery_beat",
     "notifications",
+    "ai_gateway",
+
 ]
 
 
