@@ -27,6 +27,9 @@ drf-yasg>=1.21.0
 twilio>=9.0.0
 celery>=5.3
 django-celery-beat
+firebase-admin
+google-auth
+
 
 
 

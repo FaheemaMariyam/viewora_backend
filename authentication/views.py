@@ -15,11 +15,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from twilio.rest import Client
 
-from .models import AdminLoginOTP, PasswordResetOTP, Profile
+from .models import AdminLoginOTP, PasswordResetOTP, Profile,BrokerLoginOTP
 from .serializers.auth import (
     AdminOTPVerifySerializer,
     LoginSerializer,
     RegisterSerializer,
+    BrokerOTPVerifySerializer
 )
 from .serializers.otp import SendPhoneOTPSerializer, VerifyPhoneOTPSerializer
 from .serializers.password import (
@@ -96,7 +97,6 @@ class LoginView(APIView):
             profile = user.profile
         except Profile.DoesNotExist:
             raise ValidationError("User profile not found")
-
         # SELLER & BROKER GATES
         if profile.role in ["seller", "broker"]:
             if not profile.is_profile_complete:
@@ -104,6 +104,27 @@ class LoginView(APIView):
 
             if not profile.is_admin_approved:
                 raise ValidationError("Admin approval pending")
+        if profile.role == "broker":
+            BrokerLoginOTP.objects.filter(user=user).delete()
+
+            otp = str(random.randint(100000, 999999))
+            BrokerLoginOTP.objects.create(user=user, otp=otp)
+
+            send_mail(
+                subject="Broker Login OTP",
+                message=f"Your broker login OTP is {otp}",
+                from_email=None,
+                recipient_list=[user.email],
+            )
+            return Response(
+        {
+            "message": "OTP sent to broker email",
+            "otp_required": True,
+            "role": "broker"
+        },
+        status=200
+    )
+        
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         # Store tokens securely in cookies
@@ -412,3 +433,64 @@ class RefreshTokenView(APIView):
         except Exception as e:
             print("REFRESH ERROR:", e)
             raise AuthenticationFailed("Invalid refresh token")
+
+class SaveFCMTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get("token")
+
+        if not token:
+            return Response({"error": "FCM token missing"}, status=400)
+
+        profile = request.user.profile
+        profile.fcm_token = token
+        profile.save(update_fields=["fcm_token"])
+
+        return Response({"message": "FCM token saved"})
+
+class BrokerOTPVerifyView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = BrokerOTPVerifySerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data["username"]
+        otp = serializer.validated_data["otp"]
+
+        try:
+            # user = User.objects.get(username=username)
+            user = User.objects.get(username=username, profile__role="broker")
+
+            otp_obj = BrokerLoginOTP.objects.get(user=user, otp=otp)
+        except:
+            raise ValidationError("Invalid OTP")
+
+        if otp_obj.is_expired():
+            otp_obj.delete()
+            raise ValidationError("OTP expired")
+
+        # ✅ Issue JWT
+        refresh = RefreshToken.for_user(user)
+        otp_obj.delete()
+
+        response = Response({"role": "broker"})
+
+        response.set_cookie(
+            "access",
+            str(refresh.access_token),
+            httponly=True,
+            samesite="Lax",
+            secure=False,
+        )
+        response.set_cookie(
+            "refresh",
+            str(refresh),
+            httponly=True,
+            samesite="Lax",
+            secure=False,
+        )
+
+        return response

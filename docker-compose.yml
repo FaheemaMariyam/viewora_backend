@@ -37,6 +37,21 @@ services:
     - .:/app
     - media_data:/app/media
 
+  celery:
+    build: .
+    container_name: viewora_celery
+    command: celery -A viewora_project worker -l info
+    depends_on:
+      - backend
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+
 volumes:
   postgres_data:
   media_data:
+
+    
+

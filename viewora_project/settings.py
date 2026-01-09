@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "channels",
     "chat",
     "django_celery_beat",
+    "notifications",
 ]
 
 
@@ -119,6 +120,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "viewora_project.wsgi.application"
 
 ASGI_APPLICATION = "viewora_project.asgi.application"
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

@@ -26,6 +26,8 @@ class Profile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    fcm_token = models.TextField(null=True, blank=True)
+    
     def __str__(self):
         return f"{self.user.username} ({self.role})"
 
@@ -86,3 +88,13 @@ class PhoneOTP(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=5)
+class BrokerLoginOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=5)
+
+    def __str__(self):
+        return f"Broker OTP for {self.user.email}"

@@ -12,7 +12,12 @@ from .views import (
     ResetPasswordRequestView,
     SendPhoneOTPView,
     VerifyPhoneOTPView,
+    SaveFCMTokenView,
+    BrokerOTPVerifyView
+    
 )
+from .views_google import GoogleLoginView
+
 
 urlpatterns = [
     path("register/", RegisterView.as_view()),
@@ -26,4 +31,7 @@ urlpatterns = [
     path("otp/send/", SendPhoneOTPView.as_view()),
     path("otp/verify/", VerifyPhoneOTPView.as_view()),
     path("refresh/", RefreshTokenView.as_view()),
+    path("save-fcm-token/", SaveFCMTokenView.as_view()),
+    path("google-login/", GoogleLoginView.as_view()),
+    path("broker/verify-otp/", BrokerOTPVerifyView.as_view()),
 ]
