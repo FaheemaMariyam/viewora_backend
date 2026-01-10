@@ -20,6 +20,9 @@ from django.contrib.auth import get_user_model
 # from authentication.tasks import send_notification_task
 from notifications.tasks import send_notification_task
 # from .services import assign_broker_to_interest
+from utils.sqs import send_interest_created_event
+
+
 
 logger = logging.getLogger("viewora")
 User = get_user_model()
@@ -71,16 +74,58 @@ class CreateInterestView(APIView):
             profile__is_admin_approved=True,
         )
 
+#         for broker in brokers:
+#             send_notification_task.delay(
+#                 broker.id,
+#                 "New Property Interest",
+#                 f"A client is interested in {property_obj.title}",
+#                 {
+#                     "interest_id": str(interest.id),
+#                     "property_id": str(property_obj.id),
+#                 },
+#             )
+#             send_interest_created_event({
+#     "event": "INTEREST_CREATED",
+#     "broker_email": broker.user.email,
+#     "broker_name": broker.user.username,
+#     "property_title": interest.property.title,
+#     "client_name": request.user.username,
+# })
+        # after interest is created successfully
+
+# 🔔 realtime notifications (Celery)
         for broker in brokers:
             send_notification_task.delay(
-                broker.id,
-                "New Property Interest",
-                f"A client is interested in {property_obj.title}",
-                {
-                    "interest_id": str(interest.id),
-                    "property_id": str(property_obj.id),
-                },
-            )
+                 broker.id,
+                    "New Property Interest",
+                    f"A client is interested in {property_obj.title}",
+                    {
+                        "interest_id": str(interest.id),
+                        "property_id": str(property_obj.id),
+                    },
+                )
+
+# 📩 ONE SQS EVENT ONLY
+#         send_interest_created_event({
+#     "event": "INTEREST_CREATED",
+#     "interest_id": str(interest.id),
+#     "property_id": str(property_obj.id),
+#     "property_title": property_obj.title,
+#     "client_name": request.user.username,
+# })
+        broker_emails = list(
+            brokers.values_list("email", flat=True)
+        )   
+
+        send_interest_created_event({
+    "event": "INTEREST_CREATED",
+    "interest_id": str(interest.id),
+    "property_id": str(property_obj.id),
+    "property_title": property_obj.title,
+    "client_name": request.user.username,
+    "broker_emails": broker_emails,
+})
+
         # Signals handle broker + count
 
         return Response({"message": "Interest created"}, status=status.HTTP_201_CREATED)
