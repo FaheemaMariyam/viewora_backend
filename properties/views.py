@@ -19,7 +19,7 @@ from .serializers import (
     PropertyUpdateSerializer,
     SellerPropertyListSerializer,
 )
-
+from .tasks import record_property_view_task
 
 class PropertyCreateView(APIView):
     permission_classes = [IsApprovedSeller]
@@ -104,9 +104,13 @@ class PropertyDetailView(APIView):
         property_obj = get_object_or_404(
             Property, id=pk, status="published", is_active=True
         )
-
+        record_property_view_task.delay(
+            property_obj.id,
+            property_obj.city,
+            property_obj.locality
+        )
         serializer = PropertyDetailSerializer(
-            property_obj, context={"request": request}
+            property_obj, context={"request": request}  
         )
 
         return Response(serializer.data, status=status.HTTP_200_OK)

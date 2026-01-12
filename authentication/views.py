@@ -472,7 +472,7 @@ class BrokerOTPVerifyView(APIView):
             otp_obj.delete()
             raise ValidationError("OTP expired")
 
-        # ✅ Issue JWT
+        #  Issue JWT
         refresh = RefreshToken.for_user(user)
         otp_obj.delete()
 

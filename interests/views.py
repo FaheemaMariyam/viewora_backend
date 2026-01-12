@@ -74,26 +74,9 @@ class CreateInterestView(APIView):
             profile__is_admin_approved=True,
         )
 
-#         for broker in brokers:
-#             send_notification_task.delay(
-#                 broker.id,
-#                 "New Property Interest",
-#                 f"A client is interested in {property_obj.title}",
-#                 {
-#                     "interest_id": str(interest.id),
-#                     "property_id": str(property_obj.id),
-#                 },
-#             )
-#             send_interest_created_event({
-#     "event": "INTEREST_CREATED",
-#     "broker_email": broker.user.email,
-#     "broker_name": broker.user.username,
-#     "property_title": interest.property.title,
-#     "client_name": request.user.username,
-# })
-        # after interest is created successfully
 
-# 🔔 realtime notifications (Celery)
+
+# realtime notifications (Celery)
         for broker in brokers:
             send_notification_task.delay(
                  broker.id,
@@ -105,14 +88,7 @@ class CreateInterestView(APIView):
                     },
                 )
 
-# 📩 ONE SQS EVENT ONLY
-#         send_interest_created_event({
-#     "event": "INTEREST_CREATED",
-#     "interest_id": str(interest.id),
-#     "property_id": str(property_obj.id),
-#     "property_title": property_obj.title,
-#     "client_name": request.user.username,
-# })
+
         broker_emails = list(
             brokers.values_list("email", flat=True)
         )   
