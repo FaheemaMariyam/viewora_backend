@@ -14,12 +14,12 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env")
 
 
 USE_REDIS = os.getenv("USE_REDIS") == "true"
@@ -253,3 +253,8 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kolkata"
+
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET")

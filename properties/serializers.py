@@ -97,6 +97,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     is_interested = serializers.SerializerMethodField()
     active_interest_id = serializers.SerializerMethodField()
     images = PropertyImageSerializer(many=True, read_only=True)
+    video_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
@@ -110,6 +111,8 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         interest = obj.interests.filter(client=user).first()
         return interest.id if interest else None
+    def get_video_url(self, obj):
+        return obj.video.video_url if hasattr(obj, "video") else None
 
 
 class SellerPropertyListSerializer(serializers.ModelSerializer):

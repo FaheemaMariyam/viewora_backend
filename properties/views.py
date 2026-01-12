@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.permissions import IsApprovedSeller
 
-from .models import Property, PropertyImage
+from .models import Property, PropertyImage,PropertyVideo
 from .pagination import PropertyPagination
 from .serializers import (
     PropertyCreateSerializer,
@@ -20,6 +20,8 @@ from .serializers import (
     SellerPropertyListSerializer,
 )
 from .tasks import record_property_view_task
+from utils.s3 import generate_presigned_upload_url,generate_presigned_get_url
+from django.conf import settings
 
 class PropertyCreateView(APIView):
     permission_classes = [IsApprovedSeller]
@@ -90,7 +92,7 @@ class PropertyListView(generics.ListAPIView):
 
 class PropertyDetailView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="Get property details",
@@ -100,10 +102,16 @@ class PropertyDetailView(APIView):
             404: "Property not found",
         },
     )
+    
+    
     def get(self, request, pk):
         property_obj = get_object_or_404(
             Property, id=pk, status="published", is_active=True
         )
+        if hasattr(property_obj, "video") and property_obj.video:
+            property_obj.video.video_url = generate_presigned_get_url(
+                property_obj.video.s3_key
+            )
         record_property_view_task.delay(
             property_obj.id,
             property_obj.city,
@@ -194,3 +202,50 @@ class SellerPropertyUpdateView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         kwargs["partial"] = True
         return super().patch(request, *args, **kwargs)
+
+class PropertyVideoPresignView(APIView):
+    permission_classes = [IsApprovedSeller]
+
+    def post(self, request, pk):
+        property_obj = get_object_or_404(
+            Property, id=pk, seller=request.user
+        )
+
+        # file_name = request.data["file_name"]
+        # content_type = request.data["content_type"]
+        file_name = request.data.get("file_name")
+        content_type = request.data.get("content_type")
+
+        if not file_name or not content_type:
+            return Response(
+                {"error": "file_name and content_type required"},
+                status=400
+            )
+
+
+        key = f"property_videos/{property_obj.id}/{file_name}"
+
+        upload_url = generate_presigned_upload_url(key, content_type)
+
+        return Response({
+            "upload_url": upload_url,
+            "key": key,
+            "video_url": f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
+,
+        })
+# properties/views.py
+class PropertyAttachVideoView(APIView):
+    permission_classes = [IsApprovedSeller]
+
+    def post(self, request, pk):
+        property_obj = get_object_or_404(Property, id=pk, seller=request.user)
+
+        PropertyVideo.objects.update_or_create(
+            property=property_obj,
+            defaults={
+                "s3_key": request.data["key"],
+                "video_url": request.data["video_url"],
+            },
+        )
+
+        return Response({"message": "Video attached"})
