@@ -2,7 +2,7 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from django.db.models import Count
+from django.db.models import Count,Q
 
 from .models  import PropertyInterest
 from notifications.tasks import send_notification_task
@@ -30,6 +30,8 @@ def interest_created_task(interest_id, property_id, client_id):
 # @shared_task
 # def pending_interest_reminder():
 #     logger.info("[CELERY BEAT] Pending interests reminder running")
+
+
 @shared_task
 def pending_interest_reminder():
     """
@@ -44,8 +46,8 @@ def pending_interest_reminder():
     ).annotate(
         pending_count=Count(
             "assigned_interests",
-            filter=PropertyInterest.objects.filter(
-                status__in=["requested", "assigned"]
+            filter=Q(
+                assigned_interests__status__in=["requested", "assigned"]
             )
         )
     )
@@ -62,6 +64,10 @@ def pending_interest_reminder():
                 "type": "daily_reminder",
                 "pending_count": broker.pending_count,
             },
+        )
+
+        logger.info(
+            f"[CELERY BEAT] Reminder sent | broker={broker.id} | count={broker.pending_count}"
         )
 
     logger.info("[CELERY BEAT] Daily reminder completed")
