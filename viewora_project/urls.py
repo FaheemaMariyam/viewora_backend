@@ -42,7 +42,6 @@ urlpatterns = [
     path("api/chat/", include("chat.urls")),
     path("api/notifications/", include("notifications.urls")),
     path("api/ai/", include("ai_gateway.urls")),
-
     # Swagger (drf-yasg)
     path(
         "swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="swagger-ui"

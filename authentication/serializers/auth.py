@@ -134,6 +134,8 @@ class AdminOTPVerifySerializer(serializers.Serializer):
         if not value.isdigit():
             raise serializers.ValidationError("OTP must be numeric")
         return value
+
+
 class BrokerOTPVerifySerializer(serializers.Serializer):
     username = serializers.CharField()
     otp = serializers.CharField(max_length=6)

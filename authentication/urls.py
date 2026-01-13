@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AdminOTPVerifyView,
+    BrokerOTPVerifyView,
     ChangePasswordView,
     LoginView,
     LogoutView,
@@ -10,14 +11,11 @@ from .views import (
     RegisterView,
     ResetPasswordConfirmView,
     ResetPasswordRequestView,
+    SaveFCMTokenView,
     SendPhoneOTPView,
     VerifyPhoneOTPView,
-    SaveFCMTokenView,
-    BrokerOTPVerifyView
-    
 )
 from .views_google import GoogleLoginView
-
 
 urlpatterns = [
     path("register/", RegisterView.as_view()),

@@ -1,15 +1,15 @@
 from django.urls import path
 
 from .views import (
+    PropertyAttachVideoView,
     PropertyCreateView,
     PropertyDetailView,
     PropertyListView,
+    PropertyVideoPresignView,
     SellerPropertyDetailView,
     SellerPropertyListView,
     SellerPropertyToggleArchiveView,
     SellerPropertyUpdateView,
-    PropertyVideoPresignView,
-    PropertyAttachVideoView
 )
 
 urlpatterns = [
@@ -23,13 +23,9 @@ urlpatterns = [
     ),
     path("seller/property/<int:pk>/", SellerPropertyDetailView.as_view()),
     path("seller/property/<int:pk>/update/", SellerPropertyUpdateView.as_view()),
+    path("seller/property/<int:pk>/video/presign/", PropertyVideoPresignView.as_view()),
     path(
-  "seller/property/<int:pk>/video/presign/",
-  PropertyVideoPresignView.as_view()
-),
-path(
-    "seller/property/<int:pk>/video/attach/",
-    PropertyAttachVideoView.as_view(),
-),
-
+        "seller/property/<int:pk>/video/attach/",
+        PropertyAttachVideoView.as_view(),
+    ),
 ]

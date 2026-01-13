@@ -1,18 +1,18 @@
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-
-
 from django.conf import settings
 from django.contrib.auth.models import User
-from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Profile
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
@@ -45,9 +45,7 @@ class GoogleLoginView(APIView):
 
             # 🔒 BLOCK sellers / brokers / admin
             if profile.role != "client":
-                raise AuthenticationFailed(
-                    "Google login allowed only for clients"
-                )
+                raise AuthenticationFailed("Google login allowed only for clients")
         else:
             # ✅ Create CLIENT user
             username = email.split("@")[0]

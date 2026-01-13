@@ -7,18 +7,33 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('properties', '0002_propertyimage'),
+        ("properties", "0002_propertyimage"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PropertyVideo',
+            name="PropertyVideo",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('s3_key', models.CharField(max_length=500)),
-                ('video_url', models.URLField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('property', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='video', to='properties.property')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("s3_key", models.CharField(max_length=500)),
+                ("video_url", models.URLField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "property",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="video",
+                        to="properties.property",
+                    ),
+                ),
             ],
         ),
     ]

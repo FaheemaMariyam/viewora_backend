@@ -1,6 +1,8 @@
-import boto3
+# connects the backend to AWS DynamoDB
 import os
 from datetime import date
+
+import boto3
 
 dynamodb = boto3.resource(
     "dynamodb",

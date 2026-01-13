@@ -1,4 +1,4 @@
-#This middleware authenticates WebSocket connections using JWT, so Django knows which user is connected to the chat
+# This middleware authenticates WebSocket connections using JWT, so Django knows which user is connected to the chat
 from asgiref.sync import sync_to_async
 from channels.middleware import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser

@@ -15,12 +15,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from twilio.rest import Client
 
-from .models import AdminLoginOTP, PasswordResetOTP, Profile,BrokerLoginOTP
+from .models import AdminLoginOTP, BrokerLoginOTP, PasswordResetOTP, Profile
 from .serializers.auth import (
     AdminOTPVerifySerializer,
+    BrokerOTPVerifySerializer,
     LoginSerializer,
     RegisterSerializer,
-    BrokerOTPVerifySerializer
 )
 from .serializers.otp import SendPhoneOTPSerializer, VerifyPhoneOTPSerializer
 from .serializers.password import (
@@ -117,14 +117,14 @@ class LoginView(APIView):
                 recipient_list=[user.email],
             )
             return Response(
-        {
-            "message": "OTP sent to broker email",
-            "otp_required": True,
-            "role": "broker"
-        },
-        status=200
-    )
-        
+                {
+                    "message": "OTP sent to broker email",
+                    "otp_required": True,
+                    "role": "broker",
+                },
+                status=200,
+            )
+
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         # Store tokens securely in cookies
@@ -434,6 +434,7 @@ class RefreshTokenView(APIView):
             print("REFRESH ERROR:", e)
             raise AuthenticationFailed("Invalid refresh token")
 
+
 class SaveFCMTokenView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -448,6 +449,7 @@ class SaveFCMTokenView(APIView):
         profile.save(update_fields=["fcm_token"])
 
         return Response({"message": "FCM token saved"})
+
 
 class BrokerOTPVerifyView(APIView):
     permission_classes = [AllowAny]

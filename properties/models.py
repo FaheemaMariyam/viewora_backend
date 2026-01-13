@@ -103,12 +103,9 @@ class PropertyImage(models.Model):
         return f"Image for {self.property.title}"
 
 
-
 class PropertyVideo(models.Model):
     property = models.OneToOneField(
-        Property,
-        related_name="video",
-        on_delete=models.CASCADE
+        Property, related_name="video", on_delete=models.CASCADE
     )
     s3_key = models.CharField(max_length=500)
     video_url = models.URLField()

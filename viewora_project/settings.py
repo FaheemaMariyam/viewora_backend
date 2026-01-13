@@ -72,7 +72,6 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "notifications",
     "ai_gateway",
-
 ]
 
 

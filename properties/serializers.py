@@ -111,6 +111,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         interest = obj.interests.filter(client=user).first()
         return interest.id if interest else None
+
     def get_video_url(self, obj):
         return obj.video.video_url if hasattr(obj, "video") else None
 

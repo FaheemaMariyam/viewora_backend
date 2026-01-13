@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
@@ -9,23 +10,22 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from authentication.permissions import IsApprovedBroker, IsClientUser
-from properties.models import Property
 
-from .models import PropertyInterest
-from .serializers import (
-    
-    PropertyInterestListSerializer,
-)
-from django.contrib.auth import get_user_model
 # from authentication.tasks import send_notification_task
 from notifications.tasks import send_notification_task
+from properties.models import Property
+
 # from .services import assign_broker_to_interest
 from utils.sqs import send_interest_created_event
 
-
+from .models import PropertyInterest
+from .serializers import (
+    PropertyInterestListSerializer,
+)
 
 logger = logging.getLogger("viewora")
 User = get_user_model()
+
 
 class CreateInterestView(APIView):
     permission_classes = [IsClientUser]
@@ -74,39 +74,34 @@ class CreateInterestView(APIView):
             profile__is_admin_approved=True,
         )
 
-
-
-# realtime notifications (Celery)
+        # realtime notifications (Celery)
         for broker in brokers:
             send_notification_task.delay(
-                 broker.id,
-                    "New Property Interest",
-                    f"A client is interested in {property_obj.title}",
-                    {
-                        "interest_id": str(interest.id),
-                        "property_id": str(property_obj.id),
-                    },
-                )
+                broker.id,
+                "New Property Interest",
+                f"A client is interested in {property_obj.title}",
+                {
+                    "interest_id": str(interest.id),
+                    "property_id": str(property_obj.id),
+                },
+            )
 
+        broker_emails = list(brokers.values_list("email", flat=True))
 
-        broker_emails = list(
-            brokers.values_list("email", flat=True)
-        )   
-
-        send_interest_created_event({
-    "event": "INTEREST_CREATED",
-    "interest_id": str(interest.id),
-    "property_id": str(property_obj.id),
-    "property_title": property_obj.title,
-    "client_name": request.user.username,
-    "broker_emails": broker_emails,
-})
+        send_interest_created_event(
+            {
+                "event": "INTEREST_CREATED",
+                "interest_id": str(interest.id),
+                "property_id": str(property_obj.id),
+                "property_title": property_obj.title,
+                "client_name": request.user.username,
+                "broker_emails": broker_emails,
+            }
+        )
 
         # Signals handle broker + count
 
         return Response({"message": "Interest created"}, status=status.HTTP_201_CREATED)
-
-
 
 
 class BrokerAcceptInterestView(APIView):
@@ -150,9 +145,7 @@ class BrokerCloseDealView(APIView):
             property_obj = interest.property
 
             if property_obj.status == "sold":
-                return Response(
-                    {"message": "Property already sold"}, status=400
-                )
+                return Response({"message": "Property already sold"}, status=400)
 
             interest.status = "closed"
             interest.save(update_fields=["status"])
@@ -164,15 +157,12 @@ class BrokerCloseDealView(APIView):
                 id=interest.id
             ).update(status="cancelled")
 
-           
             send_notification_task.delay(
-    property_obj.seller.id,
-    "Property Sold",
-    "Your property deal has been closed successfully",
-    {"property_id": str(property_obj.id)},
-)           
-           
-
+                property_obj.seller.id,
+                "Property Sold",
+                "Your property deal has been closed successfully",
+                {"property_id": str(property_obj.id)},
+            )
 
             return Response({"message": "Deal closed successfully"}, status=200)
 
@@ -208,9 +198,11 @@ class BrokerAvailableInterestsView(APIView):
         responses={200: PropertyInterestListSerializer(many=True)},
     )
     def get(self, request):
-        qs = PropertyInterest.objects.filter(status="requested").select_related(
-            "property", "client"
-        ).order_by("-created_at")
+        qs = (
+            PropertyInterest.objects.filter(status="requested")
+            .select_related("property", "client")
+            .order_by("-created_at")
+        )
 
         serializer = PropertyInterestListSerializer(qs, many=True)
         return Response(serializer.data)

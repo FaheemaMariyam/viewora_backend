@@ -2,14 +2,14 @@ import logging
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from django.db.models import Count,Q
+from django.db.models import Count, Q
 
-from .models  import PropertyInterest
 from notifications.tasks import send_notification_task
+
+from .models import PropertyInterest
 
 logger = logging.getLogger("viewora")
 User = get_user_model()
-
 
 
 # Triggered when- Client clicks Interested-PropertyInterest is created-Django signal fires-Celery runs this outside the request cycle
@@ -27,11 +27,6 @@ def interest_created_task(interest_id, property_id, client_id):
 # triggered-Automatically on schedule (every X minutes/hours)-No user action needed
 
 
-# @shared_task
-# def pending_interest_reminder():
-#     logger.info("[CELERY BEAT] Pending interests reminder running")
-
-
 @shared_task
 def pending_interest_reminder():
     """
@@ -46,9 +41,7 @@ def pending_interest_reminder():
     ).annotate(
         pending_count=Count(
             "assigned_interests",
-            filter=Q(
-                assigned_interests__status__in=["requested", "assigned"]
-            )
+            filter=Q(assigned_interests__status__in=["requested", "assigned"]),
         )
     )
 

@@ -1,10 +1,10 @@
-
+from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
 
 from authentication.tasks import send_notification_task
+
 from .models import PropertyInterest
 from .tasks import interest_created_task
 

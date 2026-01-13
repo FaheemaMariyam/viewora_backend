@@ -1,7 +1,8 @@
-
 import boto3
 from django.conf import settings
 
+
+# seller upload
 def generate_presigned_upload_url(key, content_type):
     s3 = boto3.client(
         "s3",
@@ -19,6 +20,9 @@ def generate_presigned_upload_url(key, content_type):
         },
         ExpiresIn=300,  # 5 minutes
     )
+
+
+# client get
 def generate_presigned_get_url(key, expires=3600):
     s3 = boto3.client(
         "s3",
@@ -36,4 +40,5 @@ def generate_presigned_get_url(key, expires=3600):
         ExpiresIn=expires,
     )
 
-#s3-permissions-cors change in into domain while hosting
+
+# s3-permissions-cors change in into domain while hosting
