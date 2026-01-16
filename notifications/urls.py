@@ -8,7 +8,6 @@ from .views import (
 )
 
 urlpatterns = [
-    # path("store/", StoreNotificationView.as_view()),
     path("", NotificationListView.as_view()),
     path("unread-count/", NotificationUnreadCountView.as_view()),
     path("mark-read/", NotificationMarkReadView.as_view()),

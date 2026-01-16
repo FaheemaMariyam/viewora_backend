@@ -4,10 +4,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from authentication.tasks import send_notification_task
+from utils.dynamodb_interest import record_property_interest
 
 from .models import PropertyInterest
 from .tasks import interest_created_task
 
+import logging
+
+logger = logging.getLogger("viewora")
 User = get_user_model()
 
 
@@ -38,3 +42,13 @@ def on_interest_created(sender, instance, created, **kwargs):
         instance.property.id,
         instance.client.id,
     )
+    # DynamoDB analytics (non-blocking)
+    try:
+        record_property_interest(instance.property.id, instance.client)
+    except Exception as e:
+        # logger.warning(
+        #     f"DynamoDB interest analytics failed | "
+        #     f"property={instance.property.id} | "
+        #     f"user={instance.client.id} | error={e}"
+        # )
+        logger.exception("🔥 DynamoDB interest analytics failed")

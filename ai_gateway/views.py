@@ -1,4 +1,5 @@
 # Create your views here.
+import os
 import requests
 from django.shortcuts import render
 from rest_framework import status
@@ -12,8 +13,9 @@ class AreaInsightsGateway(APIView):
 
     def post(self, request):
         try:
+            ai_service_url = os.getenv("AI_SERVICE_URL", "http://ai_service:8001")
             response = requests.post(
-                "http://ai_service:8001/ai/area-insights", json=request.data, timeout=5
+                f"{ai_service_url}/ai/area-insights", json=request.data, timeout=5
             )
             return Response(response.json(), status=response.status_code)
 
