@@ -45,6 +45,7 @@ class AreaInsightsGateway(APIView):
                 {"error": "AI service unavailable"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+
 class PropertiesForRAG(APIView):
     """
     Internal API: provides property data to AI service
@@ -68,3 +69,29 @@ class PropertiesForRAG(APIView):
             })
 
         return Response(data)
+
+
+class SyncAIGateway(APIView):
+    """
+    Gateway to trigger a RAG index refresh in the AI service
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            ai_service_url = os.getenv("AI_SERVICE_URL", "http://ai_service:8001")
+            response = requests.post(f"{ai_service_url}/ai/sync", timeout=30)
+            
+            if response.status_code != 200:
+                return Response(
+                    {"error": "Failed to sync AI service"},
+                    status=response.status_code
+                )
+                
+            return Response(response.json(), status=200)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Could not reach AI service: {e}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
