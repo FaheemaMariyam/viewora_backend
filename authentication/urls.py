@@ -14,6 +14,11 @@ from .views import (
     SaveFCMTokenView,
     SendPhoneOTPView,
     VerifyPhoneOTPView,
+    AdminListUsersView,
+    AdminToggleUserStatusView,
+    AdminDashboardStatsView,
+    AdminPropertyListView,
+    AdminTogglePropertyStatusView,
 )
 from .views_google import GoogleLoginView
 
@@ -32,4 +37,17 @@ urlpatterns = [
     path("save-fcm-token/", SaveFCMTokenView.as_view()),
     path("google-login/", GoogleLoginView.as_view()),
     path("broker/verify-otp/", BrokerOTPVerifyView.as_view()),
+    path("admin/users/", AdminListUsersView.as_view(), name="admin-users"),
+    path(
+        "admin/users/<int:user_id>/toggle-status/",
+        AdminToggleUserStatusView.as_view(),
+        name="toggle-user-status",
+    ),
+    path("admin/stats/", AdminDashboardStatsView.as_view(), name="admin-stats"),
+    path("admin/properties/", AdminPropertyListView.as_view(), name="admin-properties"),
+    path(
+        "admin/properties/<int:property_id>/toggle-status/",
+        AdminTogglePropertyStatusView.as_view(),
+        name="toggle-property-status",
+    ),
 ]

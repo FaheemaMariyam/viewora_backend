@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from ..models import BrokerDetails, Profile, SellerDetails
+from properties.models import Property
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -124,6 +125,55 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+class AdminUserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source="profile.role", read_only=True)
+    is_profile_complete = serializers.BooleanField(source="profile.is_profile_complete", read_only=True)
+    is_admin_approved = serializers.BooleanField(source="profile.is_admin_approved", read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "is_active",
+            "date_joined",
+            "role",
+            "is_profile_complete",
+            "is_admin_approved",
+        ]
+
+
+class AdminPropertySerializer(serializers.ModelSerializer):
+    seller_username = serializers.CharField(source="seller.username", read_only=True)
+    cover_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Property
+        fields = [
+            "id",
+            "title",
+            "price",
+            "city",
+            "locality",
+            "property_type",
+            "status",
+            "is_active",
+            "view_count",
+            "interest_count",
+            "created_at",
+            "seller_username",
+            "cover_image",
+        ]
+
+    def get_cover_image(self, obj):
+        image = obj.images.first()
+        if not image: return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(image.image.url)
+        return image.image.url
+
 
 
 class AdminOTPVerifySerializer(serializers.Serializer):

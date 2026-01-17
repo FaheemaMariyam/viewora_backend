@@ -6,10 +6,11 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -21,7 +22,10 @@ from .serializers.auth import (
     BrokerOTPVerifySerializer,
     LoginSerializer,
     RegisterSerializer,
+    AdminUserSerializer,
+    AdminPropertySerializer
 )
+from properties.models import Property
 from .serializers.otp import SendPhoneOTPSerializer, VerifyPhoneOTPSerializer
 from .serializers.password import (
     ChangePasswordSerializer,
@@ -161,9 +165,14 @@ class ProfileView(APIView):
     )
     def get(self, request):
         user = request.user
-        profile = user.profile
+        
+        # Safe profile check (Superusers might not have profile records)
+        try:
+            profile = user.profile
+        except Profile.DoesNotExist:
+            profile = None
 
-        if profile.role in ["seller", "broker"]:
+        if profile and profile.role in ["seller", "broker"]:
             if not profile.is_profile_complete:
                 return Response({"error": "Profile incomplete"}, status=403)
 
@@ -174,7 +183,9 @@ class ProfileView(APIView):
             {
                 "id": user.id,
                 "username": user.username,
-                "role": profile.role,
+                "email": user.email,
+                "role": profile.role if profile else "admin",
+                "is_superuser": user.is_superuser,
             }
         )
 
@@ -496,3 +507,106 @@ class BrokerOTPVerifyView(APIView):
         )
 
         return response
+class AdminListUsersView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        search = request.query_params.get("search")
+
+        queryset = User.objects.filter(is_superuser=False).select_related("profile")
+
+        if search:
+            queryset = queryset.filter(
+                Q(username__icontains=search) |
+                Q(email__icontains=search) |
+                Q(profile__role__icontains=search)
+            )
+
+        serializer = AdminUserSerializer(queryset, many=True)
+        return Response(serializer.data, status=200)
+        
+
+class AdminToggleUserStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, is_superuser=False)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        user.is_active = not user.is_active
+        user.save(update_fields=["is_active"])
+
+        return Response(
+            {
+                "message": "User status updated",
+                "user_id": user.id,
+                "is_active": user.is_active,
+            },
+            status=200,
+        )
+
+
+class AdminDashboardStatsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        # User Distribution
+        user_counts = {
+            "total": User.objects.count(),
+            "client": Profile.objects.filter(role="client").count(),
+            "seller": Profile.objects.filter(role="seller").count(),
+            "broker": Profile.objects.filter(role="broker").count(),
+        }
+
+        # Property Inventory
+        property_counts = {
+            "total": Property.objects.count(),
+            "house": Property.objects.filter(property_type="house").count(),
+            "plot": Property.objects.filter(property_type="plot").count(),
+        }
+
+        # Locality Demand (Top 5 Cities)
+        from django.db.models import Count
+        city_stats = Property.objects.values("city").annotate(count=Count("id")).order_by("-count")[:5]
+
+        return Response({
+            "users": user_counts,
+            "properties": property_counts,
+            "city_stats": list(city_stats)
+        })
+
+class AdminPropertyListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        search = request.query_params.get("search")
+        queryset = Property.objects.all().select_related("seller").order_by("-created_at")
+
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(city__icontains=search) |
+                Q(seller__username__icontains=search)
+            )
+
+        serializer = AdminPropertySerializer(queryset, many=True, context={"request": request})
+        return Response(serializer.data)
+
+class AdminTogglePropertyStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, property_id):
+        try:
+            prop = Property.objects.get(id=property_id)
+        except Property.DoesNotExist:
+            return Response({"error": "Property not found"}, status=404)
+
+        prop.is_active = not prop.is_active
+        prop.save(update_fields=["is_active"])
+
+        return Response({
+            "message": "Property status updated",
+            "is_active": prop.is_active
+        })
