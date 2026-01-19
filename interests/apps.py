@@ -7,3 +7,5 @@ class InterestsConfig(AppConfig):
 
     def ready(self):
         import interests.signals
+        from .scheduler import setup_periodic_tasks
+        setup_periodic_tasks()
