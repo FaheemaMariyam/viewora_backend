@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from rest_framework import filters, generics, status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -34,7 +35,7 @@ class PropertyCreateView(APIView):
         security=[{"cookieAuth": []}],
         request_body=PropertyCreateSerializer,
         responses={
-            201: PropertyDetailSerializer,
+            201: PropertyCreateSerializer,
             400: "Validation error",
         },
     )
@@ -203,7 +204,25 @@ class SellerPropertyUpdateView(generics.UpdateAPIView):
 
 class PropertyVideoPresignView(APIView):
     permission_classes = [IsApprovedSeller]
-
+    @swagger_auto_schema(
+        tags=["Properties"],
+        operation_summary="Generate presigned video upload URL",
+        operation_description="Generate S3 presigned URL to upload property video",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "file_name": openapi.Schema(type=openapi.TYPE_STRING),
+                "content_type": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+            required=["file_name", "content_type"],
+        ),
+        responses={
+            200: "Presigned URL generated",
+            400: "file_name and content_type required",
+            403: "Forbidden",
+            404: "Property not found",
+        },
+    )
     def post(self, request, pk):
         property_obj = get_object_or_404(Property, id=pk, seller=request.user)
 
@@ -233,7 +252,24 @@ class PropertyVideoPresignView(APIView):
 # properties/views.py
 class PropertyAttachVideoView(APIView):
     permission_classes = [IsApprovedSeller]
-
+    @swagger_auto_schema(
+        tags=["Properties"],
+        operation_summary="Attach uploaded video to property",
+        operation_description="Attach previously uploaded S3 video to a property",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "key": openapi.Schema(type=openapi.TYPE_STRING),
+                "video_url": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+            required=["key", "video_url"],
+        ),
+        responses={
+            200: "Video attached",
+            403: "Forbidden",
+            404: "Property not found",
+        },
+    )
     def post(self, request, pk):
         property_obj = get_object_or_404(Property, id=pk, seller=request.user)
 

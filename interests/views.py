@@ -107,6 +107,16 @@ class CreateInterestView(APIView):
 class BrokerAcceptInterestView(APIView):
     permission_classes = [IsApprovedBroker]
 
+    @swagger_auto_schema(
+        tags=["Interests"],
+        operation_summary="Broker accepts an interest",
+        operation_description="Approved broker accepts a client interest",
+        responses={
+            200: "Interest accepted",
+            403: "Forbidden",
+            404: "Interest not found or already processed",
+        },
+    )
     def post(self, request, interest_id):
         with transaction.atomic():
             interest = get_object_or_404(
@@ -132,7 +142,17 @@ class BrokerAcceptInterestView(APIView):
 
 class BrokerCloseDealView(APIView):
     permission_classes = [IsApprovedBroker]
-
+    @swagger_auto_schema(
+            tags=["interests"],
+            operation_summary="Broker close a deal",
+            operation_description="Asigned broker close the deal of property",
+            responses={
+                200:"Deal closed",
+                400:"Property already sold",
+                403:"forbidden",
+                404:"Interest not found or invalid state"   
+            },
+    )
     def post(self, request, interest_id):
         with transaction.atomic():
             interest = get_object_or_404(

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from drf_yasg.utils import swagger_auto_schema
 from interests.models import PropertyInterest
 
 from .models import ChatMessage
@@ -12,7 +12,15 @@ from .models import ChatMessage
 
 class ChatHistoryView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        tags=["Chat"],
+        operation_summary="Get chat history (REST helper for live chat)",
+        responses={
+            200: "List of chat messages",
+            403: "Forbidden",
+            404: "Interest not found",
+        },
+    )
     def get(self, request, interest_id):
         interest = get_object_or_404(PropertyInterest, id=interest_id)
 
@@ -37,7 +45,15 @@ class ChatHistoryView(APIView):
 
 class MarkMessagesReadView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        tags=["Chat"],
+        operation_summary="Mark messages as read (REST helper for live chat)",
+        responses={
+            200: "Messages marked as read",
+            403: "Forbidden",
+            404: "Interest not found",
+        },
+    )
     def post(self, request, interest_id):
         interest = get_object_or_404(PropertyInterest, id=interest_id)
 

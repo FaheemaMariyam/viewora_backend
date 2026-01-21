@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+from django.db.models import Q,Count
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
@@ -14,9 +15,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated,IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from twilio.rest import Client
+# from twilio.rest import Client
 
-from .models import AdminLoginOTP, BrokerLoginOTP, PasswordResetOTP, Profile
+from .models import AdminLoginOTP, BrokerLoginOTP, PasswordResetOTP, Profile,BrokerDetails,SellerDetails
 from .serializers.auth import (
     AdminOTPVerifySerializer,
     BrokerOTPVerifySerializer,
@@ -38,7 +39,16 @@ from .serializers.profile import ProfileSerializer
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
-    @swagger_auto_schema(request_body=RegisterSerializer)
+    @swagger_auto_schema(
+    tags=["Auth"],
+    operation_summary="User registration",
+    request_body=RegisterSerializer,
+    responses={
+        201: RegisterSerializer,   
+        400: "Bad Request",
+    },
+)
+
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
@@ -62,7 +72,16 @@ class LoginView(APIView):
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
 
-    @swagger_auto_schema(request_body=LoginSerializer)
+    @swagger_auto_schema(
+    tags=["Auth"],
+    operation_summary="User login",
+    request_body=LoginSerializer,
+    responses={
+        200: "Login successful / OTP sent / Tokens issued",
+        400: "Validation error",
+        401: "Invalid credentials or account disabled",
+    },
+)
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(
@@ -179,15 +198,20 @@ class ProfileView(APIView):
             if not profile.is_admin_approved:
                 return Response({"error": "Admin approval pending"}, status=403)
 
-        return Response(
-            {
+        if not profile:
+            # Superuser without profile
+            return Response({
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "role": profile.role if profile else "admin",
-                "is_superuser": user.is_superuser,
-            }
-        )
+                "role": "admin",
+                "is_superuser": user.is_superuser
+            })
+
+        serializer = self.serializer_class(profile, context={"request": request})
+        data = serializer.data
+        data["is_superuser"] = user.is_superuser
+        return Response(data)
 
 
 class LogoutView(APIView):
@@ -209,7 +233,16 @@ class LogoutView(APIView):
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(request_body=ChangePasswordSerializer)
+    @swagger_auto_schema(
+        tags=["Auth"],
+        operation_summary="Change password",
+        request_body=ChangePasswordSerializer,
+        responses={
+            200: "Password changed successfully",
+            400: "Validation error",
+            401: "Unauthorized",
+        },
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -237,7 +270,15 @@ class ResetPasswordRequestView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordRequestSerializer
 
-    @swagger_auto_schema(request_body=ResetPasswordRequestSerializer)
+    @swagger_auto_schema(
+        tags=["Auth"],
+        operation_summary="Request password reset OTP",
+        request_body=ResetPasswordRequestSerializer,
+        responses={
+            200: "OTP sent if account exists",
+            400: "Validation error",
+        },
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -270,7 +311,15 @@ class ResetPasswordConfirmView(APIView):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordConfirmSerializer
 
-    @swagger_auto_schema(request_body=ResetPasswordConfirmSerializer)
+    @swagger_auto_schema(
+        tags=["Auth"],
+        operation_summary="Confirm password reset with OTP",
+        request_body=ResetPasswordConfirmSerializer,
+        responses={
+            200: "Password reset successful",
+            400: "Invalid or expired OTP",
+        },
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -307,7 +356,15 @@ class AdminOTPVerifyView(APIView):
     serializer_class = AdminOTPVerifySerializer
     permission_classes = [AllowAny]
 
-    @swagger_auto_schema(request_body=AdminOTPVerifySerializer)
+    @swagger_auto_schema(
+        tags=["Auth"],
+        operation_summary="Verify admin OTP and login",
+        request_body=AdminOTPVerifySerializer,
+        responses={
+            200: "OTP verified, admin logged in (JWT cookies set)",
+            400: "Invalid or expired OTP",
+        },
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -343,71 +400,71 @@ class AdminOTPVerifyView(APIView):
 
 
 # Creates a Twilio client using credentials from settings to communicate with Twilio
-client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+# client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
 
 
 @method_decorator(
     csrf_exempt, name="dispatch"
 )  # It disables CSRF protection for this API view,All requests to this view bypass CSRF checks
 # This endpoint Is public (AllowAny), Is called from frontend , Does not use session authentication , Uses OTP (not cookies)
-class SendPhoneOTPView(APIView):
-    permission_classes = [AllowAny]
+# class SendPhoneOTPView(APIView):
+#     permission_classes = [AllowAny]
 
-    @swagger_auto_schema(request_body=SendPhoneOTPSerializer)
-    def post(self, request):
-        # Validate request data using serializer (Swagger-friendly)
-        serializer = SendPhoneOTPSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+#     @swagger_auto_schema(request_body=SendPhoneOTPSerializer)
+#     def post(self, request):
+#         # Validate request data using serializer (Swagger-friendly)
+#         serializer = SendPhoneOTPSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
 
-        phone_number = serializer.validated_data["phone_number"]
+#         phone_number = serializer.validated_data["phone_number"]
 
-        try:  # Uses Twilio Verify service to send an SMS OTP to the given phone number
-            client.verify.services(settings.TWILIO_VERIFY_SID).verifications.create(
-                to=phone_number, channel="sms"
-            )
+#         try:  # Uses Twilio Verify service to send an SMS OTP to the given phone number
+#             client.verify.services(settings.TWILIO_VERIFY_SID).verifications.create(
+#                 to=phone_number, channel="sms"
+#             )
 
-            return Response(
-                {"message": "OTP sent"}, status=status.HTTP_200_OK
-            )  # Confirms OTP was sent successfully.
+#             return Response(
+#                 {"message": "OTP sent"}, status=status.HTTP_200_OK
+#             )  # Confirms OTP was sent successfully.
 
-        except Exception as e:
+#         except Exception as e:
 
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
 
 
-@method_decorator(csrf_exempt, name="dispatch")
-class VerifyPhoneOTPView(APIView):
-    permission_classes = [AllowAny]
+# @method_decorator(csrf_exempt, name="dispatch")
+# class VerifyPhoneOTPView(APIView):
+#     permission_classes = [AllowAny]
 
-    @swagger_auto_schema(request_body=VerifyPhoneOTPSerializer)
-    def post(self, request):
-        # Validate request data using serializer (Swagger-friendly)
-        serializer = VerifyPhoneOTPSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+#     @swagger_auto_schema(request_body=VerifyPhoneOTPSerializer)
+#     def post(self, request):
+#         # Validate request data using serializer (Swagger-friendly)
+#         serializer = VerifyPhoneOTPSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
 
-        phone_number = serializer.validated_data["phone_number"]
-        otp = serializer.validated_data["otp"]
+#         phone_number = serializer.validated_data["phone_number"]
+#         otp = serializer.validated_data["otp"]
 
-        try:  # Uses Twilio Verify to check whether the OTP is correct.
-            verification_check = client.verify.services(
-                settings.TWILIO_VERIFY_SID
-            ).verification_checks.create(to=phone_number, code=otp)
+#         try:  # Uses Twilio Verify to check whether the OTP is correct.
+#             verification_check = client.verify.services(
+#                 settings.TWILIO_VERIFY_SID
+#             ).verification_checks.create(to=phone_number, code=otp)
 
-            if (
-                verification_check.status == "approved"
-            ):  # If Twilio returns approved, the phone number is verified.
-                return Response({"verified": True}, status=status.HTTP_200_OK)
+#             if (
+#                 verification_check.status == "approved"
+#             ):  # If Twilio returns approved, the phone number is verified.
+#                 return Response({"verified": True}, status=status.HTTP_200_OK)
 
-            return Response(
-                {"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST
-            )
+#             return Response(
+#                 {"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST
+#             )
 
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
 
 
 class RefreshTokenView(APIView):
@@ -448,7 +505,22 @@ class RefreshTokenView(APIView):
 
 class SaveFCMTokenView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(
+        tags=["Notifications"],
+        operation_summary="Save FCM token for logged-in user",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "token": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+            required=["token"],
+        ),
+        responses={
+            200: "FCM token saved",
+            400: "FCM token missing",
+            401: "Unauthorized",
+        },
+    )
     def post(self, request):
         token = request.data.get("token")
 
@@ -465,7 +537,15 @@ class SaveFCMTokenView(APIView):
 class BrokerOTPVerifyView(APIView):
     permission_classes = [AllowAny]
     serializer_class = BrokerOTPVerifySerializer
-
+    @swagger_auto_schema(
+        tags=["Auth"],
+        operation_summary="Verify broker OTP and login",
+        request_body=BrokerOTPVerifySerializer,
+        responses={
+            200: "OTP verified, broker logged in (JWT cookies set)",
+            400: "Invalid or expired OTP",
+        },
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -509,11 +589,27 @@ class BrokerOTPVerifyView(APIView):
         return response
 class AdminListUsersView(APIView):
     permission_classes = [IsAdminUser]
-
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="List users (admin)",
+        manual_parameters=[
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Search by username, email, or role",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={
+            200: AdminUserSerializer(many=True),
+            401: "Unauthorized",
+            403: "Forbidden",
+        },
+    )
     def get(self, request):
         search = request.query_params.get("search")
 
-        queryset = User.objects.filter(is_superuser=False).select_related("profile")
+        queryset = User.objects.filter(is_superuser=False,profile__is_admin_approved=True).select_related("profile")
 
         if search:
             queryset = queryset.filter(
@@ -528,7 +624,16 @@ class AdminListUsersView(APIView):
 
 class AdminToggleUserStatusView(APIView):
     permission_classes = [IsAdminUser]
-
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="Enable or disable a user",
+        responses={
+            200: "User status updated",
+            404: "User not found",
+            401: "Unauthorized",
+            403: "Forbidden",
+        },
+    )
     def post(self, request, user_id):
         try:
             user = User.objects.get(id=user_id, is_superuser=False)
@@ -548,38 +653,158 @@ class AdminToggleUserStatusView(APIView):
         )
 
 
+# class AdminDashboardStatsView(APIView):
+#     permission_classes = [IsAdminUser]
+#     @swagger_auto_schema(
+#         tags=["Admin"],
+#         operation_summary="Get admin dashboard statistics",
+#         responses={
+#             200: "Dashboard statistics returned",
+#             401: "Unauthorized",
+#             403: "Forbidden",
+#         },
+#     )
+#     def get(self, request):
+#         # User Distribution
+#         user_counts = {
+#             "total": User.objects.count(),
+#             "client": Profile.objects.filter(role="client").count(),
+#             "seller": Profile.objects.filter(role="seller").count(),
+#             "broker": Profile.objects.filter(role="broker").count(),
+#         }
+
+#         # Property Inventory
+#         property_counts = {
+#             "total": Property.objects.count(),
+#             "house": Property.objects.filter(property_type="house").count(),
+#             "plot": Property.objects.filter(property_type="plot").count(),
+#         }
+
+#         # Locality Demand (Top 5 Cities)
+#         from django.db.models import Count
+#         city_stats = Property.objects.values("city").annotate(count=Count("id")).order_by("-count")[:5]
+
+#         return Response({
+#             "users": user_counts,
+#             "properties": property_counts,
+#             "city_stats": list(city_stats)
+#         })
 class AdminDashboardStatsView(APIView):
     permission_classes = [IsAdminUser]
 
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="Get admin dashboard statistics",
+        responses={
+            200: "Dashboard statistics returned",
+            401: "Unauthorized",
+            403: "Forbidden",
+        },
+    )
     def get(self, request):
-        # User Distribution
-        user_counts = {
-            "total": User.objects.count(),
-            "client": Profile.objects.filter(role="client").count(),
-            "seller": Profile.objects.filter(role="seller").count(),
-            "broker": Profile.objects.filter(role="broker").count(),
-        }
-
-        # Property Inventory
-        property_counts = {
-            "total": Property.objects.count(),
-            "house": Property.objects.filter(property_type="house").count(),
-            "plot": Property.objects.filter(property_type="plot").count(),
-        }
-
-        # Locality Demand (Top 5 Cities)
         from django.db.models import Count
-        city_stats = Property.objects.values("city").annotate(count=Count("id")).order_by("-count")[:5]
+
+        # ─────────────────────────────
+        # Users
+        # ─────────────────────────────
+        user_counts = {
+            "total": User.objects.filter(is_superuser=False).count(),
+            "active": User.objects.filter(is_active=True, is_superuser=False).count(),
+            "blocked": User.objects.filter(is_active=False, is_superuser=False).count(),
+        }
+
+        # ─────────────────────────────
+        # Pending approvals
+        # ─────────────────────────────
+        pending_counts = {
+            "sellers": Profile.objects.filter(
+                role="seller",
+                is_admin_approved=False
+            ).count(),
+            "brokers": Profile.objects.filter(
+                role="broker",
+                is_admin_approved=False
+            ).count(),
+        }
+
+        # ─────────────────────────────
+        # Properties (Dynamic aggregation by type - Published only)
+        # ─────────────────────────────
+        property_counts_raw = (
+            Property.objects.filter(status="published")
+            .values("property_type")
+            .annotate(count=Count("id"))
+        )
+        property_counts = {item["property_type"]: item["count"] for item in property_counts_raw}
+        property_counts["total"] = sum(property_counts.values())
+
+        # ─────────────────────────────
+        # Locality Demand
+        # ─────────────────────────────
+        city_stats = (
+            Property.objects
+            .values("city")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:5]
+        )
+
+        # ─────────────────────────────
+        # Top Viewed Properties
+        # ─────────────────────────────
+        top_viewed = (
+            Property.objects
+            .order_by("-view_count")[:5]
+            .values("title", "view_count")
+        )
+
+        # ─────────────────────────────
+        # Most Interested Properties
+        # ─────────────────────────────
+        most_interested = (
+            Property.objects
+            .order_by("-interest_count")[:5]
+            .values("title", "interest_count")
+        )
+
+        # ─────────────────────────────
+        # Top Brokers (By successful deals)
+        # ─────────────────────────────
+        top_brokers = (
+            User.objects.filter(profile__role="broker")
+            .annotate(deals=Count("assigned_interests", filter=Q(assigned_interests__status="closed")))
+            .order_by("-deals")[:5]
+            .values("username", "deals")
+        )
 
         return Response({
             "users": user_counts,
+            "pending": pending_counts,
             "properties": property_counts,
-            "city_stats": list(city_stats)
+            "city_stats": list(city_stats),
+            "top_viewed": list(top_viewed),
+            "most_interested": list(most_interested),
+            "top_brokers": list(top_brokers),
         })
 
 class AdminPropertyListView(APIView):
     permission_classes = [IsAdminUser]
-
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="List properties (admin)",
+        manual_parameters=[
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Search by title, city, or seller",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={
+            200: AdminPropertySerializer(many=True),
+            401: "Unauthorized",
+            403: "Forbidden",
+        },
+    )
     def get(self, request):
         search = request.query_params.get("search")
         queryset = Property.objects.all().select_related("seller").order_by("-created_at")
@@ -596,7 +821,16 @@ class AdminPropertyListView(APIView):
 
 class AdminTogglePropertyStatusView(APIView):
     permission_classes = [IsAdminUser]
-
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="Enable or disable a property",
+        responses={
+            200: "Property status updated",
+            404: "Property not found",
+            401: "Unauthorized",
+            403: "Forbidden",
+        },
+    )
     def post(self, request, property_id):
         try:
             prop = Property.objects.get(id=property_id)
@@ -610,3 +844,109 @@ class AdminTogglePropertyStatusView(APIView):
             "message": "Property status updated",
             "is_active": prop.is_active
         })
+class AdminPendingSellerListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="List pending seller signup requests",
+        responses={200: "Pending sellers list"},
+    )
+    def get(self, request):
+        sellers = Profile.objects.filter(
+            role="seller",
+            is_admin_approved=False
+        ).select_related("user")
+
+        data = []
+        for profile in sellers:
+            seller_details = SellerDetails.objects.filter(profile=profile).first()
+            data.append({
+                "user_id": profile.user.id,
+                "username": profile.user.username,
+                "email": profile.user.email,
+                "phone_number": profile.phone_number,
+                "city": seller_details.city if seller_details else None,
+                "area": seller_details.area if seller_details else None,
+                "ownership_proof": (
+                    request.build_absolute_uri(seller_details.ownership_proof.url)
+                    if seller_details and seller_details.ownership_proof else None
+                ),
+                "created_at": profile.created_at,
+            })
+
+        return Response(data)
+class AdminPendingBrokerListView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="List pending broker signup requests",
+        responses={200: "Pending brokers list"},
+    )
+    def get(self, request):
+        brokers = Profile.objects.filter(
+            role="broker",
+            is_admin_approved=False
+        ).select_related("user")
+
+        data = []
+        for profile in brokers:
+            broker_details = BrokerDetails.objects.filter(profile=profile).first()
+            data.append({
+                "user_id": profile.user.id,
+                "username": profile.user.username,
+                "email": profile.user.email,
+                "phone_number": profile.phone_number,
+                "city": broker_details.city if broker_details else None,
+                "area": broker_details.area if broker_details else None,
+                "license_number": broker_details.license_number if broker_details else None,
+                "certificate": (
+                    request.build_absolute_uri(broker_details.certificate.url)
+                    if broker_details and broker_details.certificate else None
+                ),
+                "created_at": profile.created_at,
+            })
+
+        return Response(data)
+class AdminApproveRejectUserView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @swagger_auto_schema(
+        tags=["Admin"],
+        operation_summary="Approve or reject seller/broker",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "action": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["approve", "reject"]
+                )
+            },
+            required=["action"],
+        ),
+        responses={200: "Action completed"},
+    )
+    def post(self, request, user_id):
+        action = request.data.get("action")
+
+        if action not in ["approve", "reject"]:
+            return Response({"error": "Invalid action"}, status=400)
+
+        try:
+            profile = Profile.objects.get(user_id=user_id)
+        except Profile.DoesNotExist:
+            return Response({"error": "Profile not found"}, status=404)
+
+        if action == "approve":
+            profile.is_admin_approved = True
+            profile.is_profile_complete = True
+            profile.save(update_fields=["is_admin_approved", "is_profile_complete"])
+
+            return Response({"message": "User approved"})
+
+        # Reject → disable user
+        profile.user.is_active = False
+        profile.user.save(update_fields=["is_active"])
+
+        return Response({"message": "User rejected and disabled"})

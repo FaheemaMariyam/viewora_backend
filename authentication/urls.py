@@ -12,13 +12,16 @@ from .views import (
     ResetPasswordConfirmView,
     ResetPasswordRequestView,
     SaveFCMTokenView,
-    SendPhoneOTPView,
-    VerifyPhoneOTPView,
+    # SendPhoneOTPView,
+    # VerifyPhoneOTPView,
     AdminListUsersView,
     AdminToggleUserStatusView,
     AdminDashboardStatsView,
     AdminPropertyListView,
     AdminTogglePropertyStatusView,
+    AdminPendingBrokerListView,
+    AdminPendingSellerListView,
+    AdminApproveRejectUserView,
 )
 from .views_google import GoogleLoginView
 
@@ -31,8 +34,8 @@ urlpatterns = [
     path("reset-password/request/", ResetPasswordRequestView.as_view()),
     path("reset-password/confirm/", ResetPasswordConfirmView.as_view()),
     path("admin/verify-otp/", AdminOTPVerifyView.as_view()),
-    path("otp/send/", SendPhoneOTPView.as_view()),
-    path("otp/verify/", VerifyPhoneOTPView.as_view()),
+    # path("otp/send/", SendPhoneOTPView.as_view()),
+    # path("otp/verify/", VerifyPhoneOTPView.as_view()),
     path("refresh/", RefreshTokenView.as_view()),
     path("save-fcm-token/", SaveFCMTokenView.as_view()),
     path("google-login/", GoogleLoginView.as_view()),
@@ -49,5 +52,12 @@ urlpatterns = [
         "admin/properties/<int:property_id>/toggle-status/",
         AdminTogglePropertyStatusView.as_view(),
         name="toggle-property-status",
+    ),
+    path("admin/pending/sellers/",AdminPendingSellerListView.as_view()),
+    path("admin/pending/brokers/",AdminPendingBrokerListView.as_view()),
+    path(
+    "admin/approve-reject/<int:user_id>/",
+    AdminApproveRejectUserView.as_view(),
+    name="admin-approve-reject",
     ),
 ]
