@@ -6,11 +6,11 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0009_brokerloginotp'),
+        ("authentication", "0009_brokerloginotp"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='PhoneOTP',
+            name="PhoneOTP",
         ),
     ]

@@ -81,15 +81,6 @@ class AdminLoginOTP(models.Model):
         return f"Admin OTP for {self.user.username}"
 
 
-# class PhoneOTP(models.Model):
-#     phone_number = models.CharField(max_length=15)
-#     otp = models.CharField(max_length=6)
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def is_expired(self):
-#         return timezone.now() > self.created_at + timedelta(minutes=5)
-
-
 class BrokerLoginOTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)

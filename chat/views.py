@@ -1,10 +1,11 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_yasg.utils import swagger_auto_schema
+
 from interests.models import PropertyInterest
 
 from .models import ChatMessage
@@ -12,6 +13,7 @@ from .models import ChatMessage
 
 class ChatHistoryView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         tags=["Chat"],
         operation_summary="Get chat history (REST helper for live chat)",
@@ -45,6 +47,7 @@ class ChatHistoryView(APIView):
 
 class MarkMessagesReadView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         tags=["Chat"],
         operation_summary="Mark messages as read (REST helper for live chat)",

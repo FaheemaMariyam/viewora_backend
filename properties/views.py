@@ -1,8 +1,8 @@
 # properties/views.py
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, generics, status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -182,6 +182,15 @@ class SellerPropertyDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Property.objects.filter(seller=self.request.user)
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if hasattr(instance, "video") and instance.video:
+            instance.video.video_url = generate_presigned_get_url(
+                instance.video.s3_key
+            )
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 
 class SellerPropertyUpdateView(generics.UpdateAPIView):
     permission_classes = [IsApprovedSeller]
@@ -204,6 +213,7 @@ class SellerPropertyUpdateView(generics.UpdateAPIView):
 
 class PropertyVideoPresignView(APIView):
     permission_classes = [IsApprovedSeller]
+
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="Generate presigned video upload URL",
@@ -252,6 +262,7 @@ class PropertyVideoPresignView(APIView):
 # properties/views.py
 class PropertyAttachVideoView(APIView):
     permission_classes = [IsApprovedSeller]
+
     @swagger_auto_schema(
         tags=["Properties"],
         operation_summary="Attach uploaded video to property",

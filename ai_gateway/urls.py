@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import AreaInsightsGateway,PropertiesForRAG, SyncAIGateway
+from .views import AreaInsightsGateway, PropertiesForRAG, SyncAIGateway
 
 urlpatterns = [
     path("area-insights/", AreaInsightsGateway.as_view()),

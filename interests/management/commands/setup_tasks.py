@@ -1,6 +1,8 @@
-from django.core.management.base import BaseCommand
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
 import json
+
+from django.core.management.base import BaseCommand
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
+
 
 class Command(BaseCommand):
     help = "Registers the pending interest reminder task in Celery Beat"
@@ -13,7 +15,7 @@ class Command(BaseCommand):
             day_of_week="*",
             day_of_month="*",
             month_of_year="*",
-            timezone="Asia/Kolkata"
+            timezone="Asia/Kolkata",
         )
 
         # 2. Register the task
@@ -24,6 +26,8 @@ class Command(BaseCommand):
         )
 
         if created:
-            self.stdout.write(self.style.SUCCESS(f"Successfully registered task: {task.name}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Successfully registered task: {task.name}")
+            )
         else:
             self.stdout.write(self.style.WARNING(f"Task '{task.name}' already exists."))

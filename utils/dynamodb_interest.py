@@ -34,4 +34,3 @@ def record_property_interest(property_id, user):
             "ttl": ttl,
         }
     )
-

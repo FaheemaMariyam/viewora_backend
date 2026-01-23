@@ -36,7 +36,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         event_type = data.get("type")
 
-        #  CHAT MESSAGE 
+        #  CHAT MESSAGE
         if event_type == "message":
             message = data.get("message")
             if not message:
@@ -55,7 +55,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 },
             )
 
-        # READ RECEIPT 
+        # READ RECEIPT
         elif event_type == "read":
             message_ids = data.get("message_ids", [])
             if not message_ids:
@@ -72,7 +72,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 },
             )
 
-        # WEBRTC SIGNALS 
+        # WEBRTC SIGNALS
         elif event_type in (
             "call_request",
             "call_accept",
@@ -121,7 +121,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
         )
 
-    #  HELPERS 
+    #  HELPERS
     @sync_to_async
     def is_allowed_user(self):
         try:

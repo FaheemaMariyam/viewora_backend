@@ -4,15 +4,15 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from ..models import BrokerDetails, Profile, SellerDetails
-from properties.models import Property
 from authentication.utils.firebase_auth import verify_firebase_token
+from properties.models import Property
+
+from ..models import BrokerDetails, Profile, SellerDetails
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(choices=Profile.ROLE_CHOICES)
     phone_number = serializers.CharField(write_only=True)
-
 
     ownership_proof = serializers.FileField(required=False)
     license_number = serializers.CharField(required=False)
@@ -21,7 +21,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     # Common location fields
     city = serializers.CharField(required=False)
     area = serializers.CharField(required=False)
-
 
     class Meta:
         model = User
@@ -54,22 +53,6 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_phone_number(self, value):
         return value.replace(" ", "")
 
-    # #  Phone normalization (E.164 compatible with Twilio)
-    # def validate_phone_number(self, value):
-    #     value = value.replace(" ", "")
-
-    #     # Accept +91XXXXXXXXXX
-    #     if re.match(r"^\+91[6-9]\d{9}$", value):
-    #         return value
-
-    #     # Accept 10-digit Indian number
-    #     if re.match(r"^[6-9]\d{9}$", value):
-    #         return f"+91{value}"
-
-    #     raise serializers.ValidationError(
-    #         "Enter a valid Indian phone number with country code (+91)"
-    #     )
-
     #  Role-based validation
     def validate(self, data):
         role = data.get("role")
@@ -99,43 +82,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return data
 
-    #  Create user + profile + related details
-    # def create(self, validated_data):
-    #     role = validated_data.pop("role")
-    #     phone_number = validated_data.pop("phone_number")
-
-    #     ownership_proof = validated_data.pop("ownership_proof", None)
-    #     license_number = validated_data.pop("license_number", None)
-    #     certificate = validated_data.pop("certificate", None)
-
-    #     # Create user
-    #     user = User.objects.create_user(**validated_data)
-
-    #     # Create profile
-    #     profile = Profile.objects.create(
-    #         user=user,
-    #         role=role,
-    #         phone_number=phone_number,
-    #         is_phone_verified=False,
-    #         is_profile_complete=(role == "client"),
-    #         is_admin_approved=(role == "client"),
-    #     )
-
-    #     # Create seller details
-    #     if role == "seller":
-    #         SellerDetails.objects.create(
-    #             profile=profile,
-    #             ownership_proof=ownership_proof,
-    #         )
-
-    #     # Create broker details
-    #     if role == "broker":
-    #         BrokerDetails.objects.create(
-    #             profile=profile,
-    #             license_number=license_number,
-    #             certificate=certificate,
-    #         )
-
     #     return user
     def create(self, validated_data):
         role = validated_data.pop("role")
@@ -155,7 +101,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user=user,
             role=role,
             phone_number=phone_number,
-            is_phone_verified=False, # Now default to False as it's not verified
+            is_phone_verified=False,  # Now default to False as it's not verified
             is_profile_complete=(role == "client"),
             is_admin_approved=(role == "client"),
         )
@@ -180,14 +126,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+
 class AdminUserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source="profile.role", read_only=True)
-    is_profile_complete = serializers.BooleanField(source="profile.is_profile_complete", read_only=True)
-    is_admin_approved = serializers.BooleanField(source="profile.is_admin_approved", read_only=True)
+    is_profile_complete = serializers.BooleanField(
+        source="profile.is_profile_complete", read_only=True
+    )
+    is_admin_approved = serializers.BooleanField(
+        source="profile.is_admin_approved", read_only=True
+    )
 
     class Meta:
         model = User
@@ -227,12 +178,12 @@ class AdminPropertySerializer(serializers.ModelSerializer):
 
     def get_cover_image(self, obj):
         image = obj.images.first()
-        if not image: return None
+        if not image:
+            return None
         request = self.context.get("request")
         if request:
             return request.build_absolute_uri(image.image.url)
         return image.image.url
-
 
 
 class AdminOTPVerifySerializer(serializers.Serializer):

@@ -43,11 +43,11 @@ class GoogleLoginView(APIView):
         if user:
             profile = user.profile
 
-            # 🔒 BLOCK sellers / brokers / admin
+            #  BLOCK sellers / brokers / admin
             if profile.role != "client":
                 raise AuthenticationFailed("Google login allowed only for clients")
         else:
-            # ✅ Create CLIENT user
+            # Create CLIENT user
             username = email.split("@")[0]
 
             user = User.objects.create_user(
@@ -63,7 +63,7 @@ class GoogleLoginView(APIView):
                 is_admin_approved=True,
             )
 
-        # 🎟 Issue JWT cookies (same as normal login)
+        #  Issue JWT cookies (same as normal login)
         refresh = RefreshToken.for_user(user)
 
         response = Response({"role": "client"})

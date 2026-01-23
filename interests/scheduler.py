@@ -1,10 +1,10 @@
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
 import json
 
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
+
+
 def setup_periodic_tasks():
-    if PeriodicTask.objects.filter(
-        name="Daily Pending Interest Reminder"
-    ).exists():
+    if PeriodicTask.objects.filter(name="Daily Pending Interest Reminder").exists():
         return
 
     schedule, _ = CrontabSchedule.objects.get_or_create(

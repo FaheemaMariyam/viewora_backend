@@ -1,10 +1,12 @@
 from rest_framework import serializers
-from ..models import Profile, SellerDetails, BrokerDetails
+
+from ..models import BrokerDetails, Profile, SellerDetails
+
 
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.CharField(source="user.email", read_only=True)
-    
+
     # Details from Broker/Seller models
     city = serializers.SerializerMethodField()
     area = serializers.SerializerMethodField()
@@ -15,18 +17,18 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
-            "id", 
-            "username", 
-            "email", 
-            "role", 
+            "id",
+            "username",
+            "email",
+            "role",
             "phone_number",
-            "is_profile_complete", 
+            "is_profile_complete",
             "is_admin_approved",
             "city",
             "area",
             "license_number",
             "certificate",
-            "ownership_proof"
+            "ownership_proof",
         ]
 
     def get_city(self, obj):

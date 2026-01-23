@@ -1,11 +1,12 @@
-# Create your views here.
 import os
+
 import requests
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from properties.models import Property
 
 
@@ -15,22 +16,20 @@ class AreaInsightsGateway(APIView):
     def post(self, request):
         try:
             ai_service_url = os.getenv("AI_SERVICE_URL", "http://ai_service:8001")
-            
+
             # Increased timeout to 20s for GenAI latency
             response = requests.post(
-                f"{ai_service_url}/ai/area-insights", 
-                json=request.data, 
-                timeout=20 
+                f"{ai_service_url}/ai/area-insights", json=request.data, timeout=20
             )
-            
+
             # Check if upstream returned an error
             if response.status_code != 200:
                 print(f"AI Service Error: {response.text}")
                 return Response(
-                    {"error": "AI Service returned an error"}, 
-                    status=response.status_code
+                    {"error": "AI Service returned an error"},
+                    status=response.status_code,
                 )
-                
+
             return Response(response.json(), status=response.status_code)
 
         except requests.exceptions.Timeout:
@@ -46,6 +45,7 @@ class AreaInsightsGateway(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
+
 class PropertiesForRAG(APIView):
     """
     Internal API: provides property data to AI service
@@ -58,15 +58,17 @@ class PropertiesForRAG(APIView):
 
         data = []
         for p in properties:
-            data.append({
-                "id": p.id,
-                "type": p.property_type,
-                "city": p.city,
-                "locality": p.locality,
-                "price_range": f"{p.price_min}-{p.price_max}",
-                "area_size": p.area_size,
-                "amenities": [],  # keep simple for now
-            })
+            data.append(
+                {
+                    "id": p.id,
+                    "type": p.property_type,
+                    "city": p.city,
+                    "locality": p.locality,
+                    "price_range": f"{p.price_min}-{p.price_max}",
+                    "area_size": p.area_size,
+                    "amenities": [],  # keep simple for now
+                }
+            )
 
         return Response(data)
 
@@ -75,23 +77,23 @@ class SyncAIGateway(APIView):
     """
     Gateway to trigger a RAG index refresh in the AI service
     """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
             ai_service_url = os.getenv("AI_SERVICE_URL", "http://ai_service:8001")
             response = requests.post(f"{ai_service_url}/ai/sync", timeout=30)
-            
+
             if response.status_code != 200:
                 return Response(
-                    {"error": "Failed to sync AI service"},
-                    status=response.status_code
+                    {"error": "Failed to sync AI service"}, status=response.status_code
                 )
-                
+
             return Response(response.json(), status=200)
 
         except Exception as e:
             return Response(
                 {"error": f"Could not reach AI service: {e}"},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )

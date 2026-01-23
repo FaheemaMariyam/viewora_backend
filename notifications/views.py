@@ -1,22 +1,23 @@
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_yasg.utils import swagger_auto_schema
+
 from .models import Notification
 
 
 class NotificationListView(APIView):
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-    tags=["Notifications"],
-    operation_summary="List notifications",
-    operation_description="Get notifications for the logged-in user",
-    responses={
-        200: "List of notifications",
-        401: "Unauthorized",
-    },
-)
 
+    @swagger_auto_schema(
+        tags=["Notifications"],
+        operation_summary="List notifications",
+        operation_description="Get notifications for the logged-in user",
+        responses={
+            200: "List of notifications",
+            401: "Unauthorized",
+        },
+    )
     def get(self, request):
         qs = Notification.objects.filter(user=request.user).order_by("-created_at")
         return Response(
@@ -52,6 +53,7 @@ class NotificationUnreadCountView(APIView):
 
 class NotificationMarkReadView(APIView):
     permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         tags=["Notifications"],
         operation_summary="Mark notifications as read",
