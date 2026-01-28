@@ -25,6 +25,7 @@ from .models import (
     PasswordResetOTP,
     Profile,
     SellerDetails,
+    BrokerEmailVerificationOTP
 )
 from .serializers.auth import (
     AdminOTPVerifySerializer,

@@ -22,7 +22,7 @@ from .views import (  # SendPhoneOTPView,; VerifyPhoneOTPView,
     SaveFCMTokenView,
 )
 from .views_google import GoogleLoginView
-
+from .views_email_otp import SendEmailOTPView,VerifyEmailOTPView
 urlpatterns = [
     path("register/", RegisterView.as_view()),
     path("login/", LoginView.as_view()),
@@ -56,4 +56,6 @@ urlpatterns = [
         AdminApproveRejectUserView.as_view(),
         name="admin-approve-reject",
     ),
+    path("email/send-otp/", SendEmailOTPView.as_view()),
+    path("email/verify-otp/", VerifyEmailOTPView.as_view()),
 ]

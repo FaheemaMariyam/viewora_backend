@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from properties.models import Property
 
-
+#Provides AI-powered area insights to users
 class AreaInsightsGateway(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -46,6 +46,7 @@ class AreaInsightsGateway(APIView):
             )
 
 
+#The AI service calls this endpoint to fetch property data and build/update its RAG index for answering property-related queries
 class PropertiesForRAG(APIView):
     """
     Internal API: provides property data to AI service
@@ -73,6 +74,7 @@ class PropertiesForRAG(APIView):
         return Response(data)
 
 
+#When new properties are added or updated, an admin can trigger this to ensure the AI has the latest data
 class SyncAIGateway(APIView):
     """
     Gateway to trigger a RAG index refresh in the AI service

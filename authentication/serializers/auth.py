@@ -7,9 +7,20 @@ from rest_framework import serializers
 from authentication.utils.firebase_auth import verify_firebase_token
 from properties.models import Property
 
-from ..models import BrokerDetails, Profile, SellerDetails
+from ..models import BrokerDetails, Profile, SellerDetails,BrokerEmailVerificationOTP
 
+class BrokerSendEmailOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    
+class BrokerVerifyEmailOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
 
+    def validate_otp(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("OTP must be numeric")
+        return value
+    
 class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(choices=Profile.ROLE_CHOICES)
     phone_number = serializers.CharField(write_only=True)
@@ -73,6 +84,17 @@ class RegisterSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {"certificate": "Certificate document is required for broker"}
                 )
+            email = data.get("email")
+
+            otp_obj = BrokerEmailVerificationOTP.objects.filter(
+                email=email, is_verified=True
+            ).first()
+
+            if not otp_obj:
+                raise serializers.ValidationError(
+                    { "email": "Email not verified. Please verify OTP first."}
+                )
+        
 
         if role in ["seller", "broker"]:
             if not data.get("city"):
@@ -122,6 +144,7 @@ class RegisterSerializer(serializers.ModelSerializer):
                 city=city,
                 area=area,
             )
+            BrokerEmailVerificationOTP.objects.filter(email=user.email).delete()
 
         return user
 
@@ -204,3 +227,4 @@ class BrokerOTPVerifySerializer(serializers.Serializer):
         if not value.isdigit():
             raise serializers.ValidationError("OTP must be numeric")
         return value
+

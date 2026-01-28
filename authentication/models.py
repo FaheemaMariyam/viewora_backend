@@ -91,3 +91,14 @@ class BrokerLoginOTP(models.Model):
 
     def __str__(self):
         return f"Broker OTP for {self.user.email}"
+class BrokerEmailVerificationOTP(models.Model):
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    def __str__(self):
+        return f"Email OTP for {self.email}"

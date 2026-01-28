@@ -29,7 +29,7 @@ class ChatHistoryView(APIView):
         if request.user not in [interest.client, interest.broker]:
             return Response({"detail": "Forbidden"}, status=403)
 
-        messages = ChatMessage.objects.filter(interest=interest).order_by("created_at")
+        messages = ChatMessage.objects.filter(interest=interest).order_by("-created_at")
 
         return Response(
             [
